@@ -44,12 +44,13 @@ var (
 	keyQ          = key.NewBinding(key.WithKeys("q"))
 )
 
-type phase int
-
 const (
-	phaseStartup phase = iota
-	phaseDashboard
-	phaseWatching
+	// PhaseStartup is the initial lifecycle phase.
+	PhaseStartup = iota
+	// PhaseDashboard is the active project dashboard phase.
+	PhaseDashboard
+	// PhaseWatching is the disconnected watching phase.
+	PhaseWatching
 )
 
 // Model is the root flow orchestrator.
@@ -73,7 +74,7 @@ type Model struct {
 	watching     watching.Model
 	about        about.Model
 	showingAbout bool
-	phase        phase
+	phase        int
 	width        int
 	height       int
 }
@@ -105,7 +106,7 @@ func New(
 		dash    dashboard.Model
 	)
 
-	currentPhase := phaseStartup
+	currentPhase := PhaseStartup
 	zm := zone.New()
 	pf := ""
 
@@ -117,7 +118,7 @@ func New(
 			return Model{}, nil, fmt.Errorf("parse project file: %w", errParse)
 		}
 
-		currentPhase = phaseDashboard
+		currentPhase = PhaseDashboard
 		pf = filepath.Base(projectFile)
 
 		dash = dashboard.New(
@@ -160,19 +161,34 @@ func New(
 	}, wtr.Close, nil
 }
 
+// Phase returns the current lifecycle phase.
+func (m Model) Phase() int { return m.phase }
+
+// Dashboard returns the dashboard sub-model.
+func (m Model) Dashboard() dashboard.Model { return m.dashboard }
+
+// Watching returns the watching sub-model.
+func (m Model) Watching() watching.Model { return m.watching }
+
+// ShowingAbout reports whether the about overlay is visible.
+func (m Model) ShowingAbout() bool { return m.showingAbout }
+
+// Helpbar returns the help bar sub-model.
+func (m Model) Helpbar() helpbar.Model { return m.helpbar }
+
 // Init fires the initial snapshot and starts the active phase.
 func (m Model) Init() tea.Cmd {
 	cmds := []tea.Cmd{m.watcher.Snapshot(), m.topbar.Init(), m.helpbar.Init()}
 
 	switch m.phase {
-	case phaseDashboard:
+	case PhaseDashboard:
 		cmds = append(cmds, m.dashboard.Init())
 		cmds = append(cmds, func() tea.Msg {
 			return msgs.TopbarContext{Phase: "dashboard", File: m.projectFile}
 		})
-	case phaseStartup:
+	case PhaseStartup:
 		cmds = append(cmds, m.startup.Init())
-	case phaseWatching:
+	case PhaseWatching:
 	}
 
 	return tea.Batch(cmds...)
@@ -231,7 +247,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case msgs.FileRemoved:
 		m.watching = watching.New(msg.File, m.width, m.height, m.theme, m.parser)
-		m.phase = phaseWatching
+		m.phase = PhaseWatching
 
 		return m, tea.Batch(
 			func() tea.Msg { return msgs.TopbarContext{Phase: "watching", File: ""} },
@@ -262,11 +278,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch m.phase {
-	case phaseStartup:
+	case PhaseStartup:
 		m.startup, cmd = m.startup.Update(msg)
-	case phaseDashboard:
+	case PhaseDashboard:
 		m.dashboard, cmd = m.dashboard.Update(msg)
-	case phaseWatching:
+	case PhaseWatching:
 		m.watching, cmd = m.watching.Update(msg)
 	}
 
@@ -343,7 +359,7 @@ func (m Model) handleProjectLoaded(msg msgs.ProjectLoaded) (Model, tea.Cmd) {
 		m.docker,
 		m.parser,
 	)
-	m.phase = phaseDashboard
+	m.phase = PhaseDashboard
 
 	return m, tea.Batch(
 		m.dashboard.Init(),
@@ -373,11 +389,11 @@ func (m Model) handleFileAvailabilityChanged(
 	var cmd tea.Cmd
 
 	switch m.phase {
-	case phaseStartup:
+	case PhaseStartup:
 		m.startup, cmd = m.startup.Update(msg)
-	case phaseDashboard:
+	case PhaseDashboard:
 		m.dashboard, cmd = m.dashboard.Update(msg)
-	case phaseWatching:
+	case PhaseWatching:
 		m.watching, cmd = m.watching.Update(msg)
 	}
 
@@ -389,11 +405,11 @@ func (m Model) View() tea.View {
 	var body tea.View
 
 	switch m.phase {
-	case phaseStartup:
+	case PhaseStartup:
 		body = m.startup.View()
-	case phaseDashboard:
+	case PhaseDashboard:
 		body = m.dashboard.View()
-	case phaseWatching:
+	case PhaseWatching:
 		body = m.watching.View()
 	}
 

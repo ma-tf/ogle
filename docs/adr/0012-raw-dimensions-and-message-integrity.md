@@ -1,10 +1,12 @@
 # ADR-0012: Components receive raw terminal dimensions; no parent pre-calculation or message reconstruction
 
-**Status:** Proposed
+**Status:** Accepted
 
-> **Note (implemented):** `layout.FrameHeight` has been extracted as a shared constant at `internal/ui/layout/layout.go`
-, removing the duplicated `frameHeight` locals from `dashboard`, `startup`, and `watching`. This was the first adoption
- step. The remaining items (raw dimensions, internal derivation, no message reconstruction) are still Proposed.
+> **Note (implementation status):** `layout.FrameHeight` (aliased as `ChromeHeight` in the ADR body) was extracted as a
+> shared constant at `internal/ui/layout/layout.go`, removing the duplicated `frameHeight` locals from `dashboard`,
+> `startup`, and `watching`. Components now receive raw terminal dimensions and derive their own content size internally.
+> `servicehost.ServiceName()` and `statusbar.Height()` have been removed. The remaining items (no message
+> reconstruction, pre-resize overflow guard) are also implemented in the current codebase.
 
 ## Context
 

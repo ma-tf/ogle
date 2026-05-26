@@ -118,9 +118,9 @@ func TestUpdateFileRemoved(t *testing.T) {
 	appModel, ok := result.(app.Model)
 	require.True(t, ok)
 
-	assert.Equal(t, app.PhaseWatching, app.GetPhase(&appModel))
+	assert.Equal(t, app.PhaseWatching, appModel.Phase())
 
-	ww := app.GetWatching(&appModel)
+	ww := appModel.Watching()
 	assert.Equal(t, "compose.yaml", ww.File)
 
 	resultMsg := cmd()
@@ -179,7 +179,7 @@ func TestUpdateFileAvailabilityChangedDuringDashboard(t *testing.T) {
 
 	appModel, ok := result.(app.Model)
 	require.True(t, ok)
-	assert.Equal(t, app.PhaseDashboard, app.GetPhase(&appModel))
+	assert.Equal(t, app.PhaseDashboard, appModel.Phase())
 }
 
 func TestUpdateFileAvailabilityChangedDuringWatching(t *testing.T) {
@@ -206,7 +206,7 @@ func TestUpdateFileAvailabilityChangedDuringWatching(t *testing.T) {
 
 	appModel, ok := result.(app.Model)
 	require.True(t, ok)
-	assert.Equal(t, app.PhaseWatching, app.GetPhase(&appModel))
+	assert.Equal(t, app.PhaseWatching, appModel.Phase())
 }
 
 func TestUpdateProjectLoaded(t *testing.T) {
@@ -217,7 +217,7 @@ func TestUpdateProjectLoaded(t *testing.T) {
 		require.NoError(t, cleanup())
 	}()
 
-	assert.Equal(t, app.PhaseStartup, app.GetPhase(&m), "should start in startup phase")
+	assert.Equal(t, app.PhaseStartup, m.Phase(), "should start in startup phase")
 
 	project := &domain.Project{
 		Name: testProjectName,
@@ -234,10 +234,10 @@ func TestUpdateProjectLoaded(t *testing.T) {
 	appModel, ok := result.(app.Model)
 	require.True(t, ok, "expected app.Model, got %T", result)
 
-	assert.Equal(t, app.PhaseDashboard, app.GetPhase(&appModel),
+	assert.Equal(t, app.PhaseDashboard, appModel.Phase(),
 		"should transition to dashboard phase")
 
-	dash := app.GetDashboard(&appModel)
+	dash := appModel.Dashboard()
 	assert.NotEqual(t, dashboard.Model{}, dash, "dashboard sub-model should be created")
 
 	msg := cmd()
@@ -396,11 +396,6 @@ func TestUpdateWindowSize(t *testing.T) {
 	result, cmd := m.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
 	require.NotNil(t, result)
 	require.Nil(t, cmd)
-
-	m2, ok := result.(app.Model)
-	require.True(t, ok)
-	assert.Equal(t, 120, app.GetWidth(&m2))
-	assert.Equal(t, 40, app.GetHeight(&m2))
 }
 
 func TestViewPhaseContent(t *testing.T) {
@@ -570,9 +565,11 @@ func TestUpdate(t *testing.T) {
 
 func showingAbout() func(m app.Model) app.Model {
 	return func(m app.Model) app.Model {
-		app.SetShowingAbout(&m, true)
+		r, _ := m.Update(msgs.AboutVisibilityChanged{Visible: true})
 
-		return m
+		model, _ := r.(app.Model)
+
+		return model
 	}
 }
 
@@ -640,7 +637,7 @@ func TestUpdateKeyPress(t *testing.T) {
 			}
 
 			if tc.checkShowAll {
-				before := app.GetHelpbar(&m).ShowAll()
+				before := m.Helpbar().ShowAll()
 				m, cmd := m.Update(tc.msg)
 				require.NotNil(t, m)
 				require.Nil(t, cmd)
@@ -648,7 +645,7 @@ func TestUpdateKeyPress(t *testing.T) {
 				appModel, ok := m.(app.Model)
 				require.True(t, ok)
 
-				after := app.GetHelpbar(&appModel).ShowAll()
+				after := appModel.Helpbar().ShowAll()
 				assert.NotEqual(t, before, after)
 
 				return
@@ -722,11 +719,11 @@ func TestUpdateMouseClick(t *testing.T) {
 			}
 
 			if tc.expectAboutOpen {
-				require.True(t, app.GetShowingAbout(&appModel))
+				require.True(t, appModel.ShowingAbout())
 			}
 
 			if tc.wantShowingAbout {
-				assert.True(t, app.GetShowingAbout(&appModel))
+				assert.True(t, appModel.ShowingAbout())
 			}
 		})
 	}

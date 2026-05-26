@@ -18,8 +18,11 @@ Options considered per decision are noted inline.
 ## Decision
 
 **Test package style:** `package foo_test` (black-box) throughout. Internal
-whitebox tests are not used. Rationale: forces tests to interact only through
-the public API, preventing tests from encoding implementation details.
+whitebox tests are not used except for `export_test.go` files, which are the
+standard Go pattern for exposing private fields to black-box tests in the same
+package. Currently one such file exists (`internal/app/export_test.go`).
+Rationale: forces tests to interact only through the public API, preventing
+tests from encoding implementation details.
 
 **Assertions:** `testify/assert` and `testify/require` throughout. `require`
 for preconditions and single-path assertions; `assert` for independent
@@ -47,13 +50,13 @@ this domain are small and not shared across packages.
 **Parallelism:** every test function calls `t.Parallel()` at its top, and
 every `t.Run` subtest calls `t.Parallel()` as its first statement.
 
-**Per-case setup:** each test case carries a `setup func(tc *testCase, dir
-string)` arrange field. The test loop calls `tc.setup(&tc, t.TempDir())`
-before writing any files or calling the subject. The callback is responsible
-for all per-case environment preparation: constructing paths, creating
-subdirectories, and populating any mutable arrange fields (e.g. `path string`)
-whose values depend on the temp directory. This avoids branching logic in the
-test loop and keeps each case self-contained.
+**Per-case setup:** each test case carries a `setup func(tc *testCase)` arrange
+field. The test loop calls `tc.setup(&tc)` before writing any files or calling
+the subject. The callback is responsible for all per-case environment
+preparation: constructing paths, creating subdirectories, and populating any
+mutable arrange fields (e.g. `path string`) whose values depend on the temp
+directory. This avoids branching logic in the test loop and keeps each case
+self-contained.
 
 **Filesystem:** `t.TempDir()` with real files. No filesystem abstraction
 layer. File writes are performed in the test loop after `setup` runs, guarded

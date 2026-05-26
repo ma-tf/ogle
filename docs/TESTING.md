@@ -216,4 +216,5 @@ if tt.expectedResult == "" {
 
 ### Package boundary
 
-- Black-box only: Tests must use `package foo_test`. No white-box accessors, no exported for-testing functions on production types. Dependencies controllable via constructor injection only.
+- Black-box only: Tests must use `package foo_test`. No white-box accessors on production types, no exported for-testing functions on production types. Dependencies controllable via constructor injection only.
+- Exception: `export_test.go` files that declare `package foo` (same-package) are accepted for exposing private fields/methods to black-box tests in the same package's `_test.go` files. This is the standard Go pattern for white-box accessors in test-only files, used sparingly (currently only `internal/app/export_test.go`).
