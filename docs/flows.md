@@ -189,6 +189,7 @@ The dashboard is a flat model (no sub-states). It:
 - Handles `FileAvailabilityChanged` — if the project file is still present, re-parses and updates; if absent, sends a
 msg that triggers `app` to transition to `PhaseWatching`
 - Forwards all messages to its sub-models (accordion, carousel, panel, settings)
+- Handles `c` key — emits `ClearLogBuffer{ServiceName}` to clear the selected service's log buffer
 - Toggles settings overlay via `SettingsVisibilityChanged`
 
 ---
@@ -223,6 +224,7 @@ msg that triggers `app` to transition to `PhaseWatching`
 | `SettingsVisibilityChanged`      | `settings`                      | `dashboard`                                 |
 | `AboutVisibilityChanged{Visible}`| `app`                           | `app` (tracks showingAbout flag)            |
 | `ToggleLogWrap`                  | `dashboard` (keybinding)        | `logpane`                                   |
+| `ClearLogBuffer{ServiceName}`    | `dashboard` (keybinding `c`)    | `logpane` (clears lines, drains chan, resets viewport), `servicehost` (routes by name) |
 | `BindingsMsg{Keymap}`            | various flows                   | `helpbar`                                   |
 | `DisplayError{Err}`              | any component                   | `statusbar` (auto-clear after 3s)           |
 | `DisplayStatus{Msg}`             | any component                   | `statusbar` (auto-clear after 3s)           |
