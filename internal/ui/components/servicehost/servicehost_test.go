@@ -1,7 +1,6 @@
 package servicehost_test
 
 import (
-	"context"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
@@ -32,22 +31,14 @@ func newModel(t *testing.T) (servicehost.Model, *logsmocks.MockStreamer) {
 	return servicehost.New(theme.Default(), svcDef, testProject, 120, 100, 100, s), s
 }
 
-//nolint:funlen
-func TestUpdate(t *testing.T) {
+func TestUpdate_Lifecycle(t *testing.T) {
 	t.Parallel()
 
 	type testCase struct {
-		name string
-		// arrange
+		name  string
 		setup func(*testing.T) servicehost.Model
-
-		// act
-		msg tea.Msg
-
-		// assert
-		expectedMsg tea.Msg
-		expectCmd   bool
-		check       func(*testing.T, servicehost.Model)
+		msg   tea.Msg
+		check func(*testing.T, servicehost.Model)
 	}
 
 	cases := []testCase{
@@ -59,8 +50,7 @@ func TestUpdate(t *testing.T) {
 
 				return m
 			},
-			msg:         msgs.ServiceSelected{ServiceName: svcName},
-			expectedMsg: nil,
+			msg: msgs.ServiceSelected{ServiceName: svcName},
 			check: func(t *testing.T, m servicehost.Model) {
 				t.Helper()
 				assert.Contains(t, m.View().Content, "╭")
@@ -76,8 +66,7 @@ func TestUpdate(t *testing.T) {
 
 				return m
 			},
-			msg:         msgs.ServiceSelected{ServiceName: "db"},
-			expectedMsg: nil,
+			msg: msgs.ServiceSelected{ServiceName: "db"},
 			check: func(t *testing.T, m servicehost.Model) {
 				t.Helper()
 				assert.Empty(t, m.View().Content)
@@ -85,39 +74,147 @@ func TestUpdate(t *testing.T) {
 		},
 
 		{
-			name: "DaemonConnected starts streamer and emits Next cmd",
+			name: "DaemonConnected is no-op",
+			setup: func(t *testing.T) servicehost.Model {
+				t.Helper()
+				m, _ := newModel(t)
+
+				return m
+			},
+			msg: msgs.DaemonConnected{},
+		},
+
+		{
+			name: "KeyPressMsg when not selected is no-op",
+			setup: func(t *testing.T) servicehost.Model {
+				t.Helper()
+				m, _ := newModel(t)
+
+				return m
+			},
+			msg: tea.KeyPressMsg{},
+		},
+
+		{
+			name: "theme.Changed updates stored theme",
+			setup: func(t *testing.T) servicehost.Model {
+				t.Helper()
+				m, _ := newModel(t)
+
+				return m
+			},
+			msg: theme.Changed{Theme: theme.DefaultLight()},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			m := tc.setup(t)
+			m, cmd := m.Update(tc.msg)
+			require.Nil(t, cmd)
+
+			if tc.check != nil {
+				tc.check(t, m)
+			}
+		})
+	}
+}
+
+//nolint:funlen
+func TestUpdate_LogStream(t *testing.T) {
+	t.Parallel()
+
+	type testCase struct {
+		name        string
+		setup       func(*testing.T) servicehost.Model
+		msg         tea.Msg
+		expectedMsg tea.Msg
+		expectCmd   bool
+		check       func(*testing.T, servicehost.Model)
+	}
+
+	cases := []testCase{
+		{
+			name: "ServicesPolled with running container starts streamer",
 			setup: func(t *testing.T) servicehost.Model {
 				t.Helper()
 				m, s := newModel(t)
-				s.EXPECT().Start(context.Background(), testProject+"-"+svcName+"-1").Return()
+				s.EXPECT().Start(mock.Anything, testProject+"-"+svcName+"-1").Return()
 				s.EXPECT().Next().Return(func() tea.Msg {
 					return msgs.LogLinesAvailable{}
 				})
 
 				return m
 			},
-			msg:         msgs.DaemonConnected{},
+			msg: msgs.ServicesPolled{
+				Runtimes: map[string]*domain.ServiceRuntimeData{
+					svcName: {State: domain.ServiceStateRunning},
+				},
+			},
 			expectedMsg: msgs.LogLinesAvailable{},
 		},
 
 		{
-			name: "DaemonConnected when already started is no-op",
+			name: "ServicesPolled without runtime data does not start streamer",
 			setup: func(t *testing.T) servicehost.Model {
 				t.Helper()
-				m, s := newModel(t)
-				s.EXPECT().Start(context.Background(), testProject+"-"+svcName+"-1").Return()
-				s.EXPECT().Next().Return(func() tea.Msg { return nil })
-
-				m, _ = m.Update(msgs.DaemonConnected{})
+				m, _ := newModel(t)
 
 				return m
 			},
-			msg:         msgs.DaemonConnected{},
-			expectedMsg: nil,
+			msg: msgs.ServicesPolled{
+				Runtimes: map[string]*domain.ServiceRuntimeData{},
+			},
+			expectCmd: false,
 		},
 
 		{
-			name: "LogLinesAvailable emits streamer.Next",
+			name: "ServicesPolled with non-running state does not start streamer",
+			setup: func(t *testing.T) servicehost.Model {
+				t.Helper()
+				m, _ := newModel(t)
+
+				return m
+			},
+			msg: msgs.ServicesPolled{
+				Runtimes: map[string]*domain.ServiceRuntimeData{
+					svcName: {State: domain.ServiceStateExited},
+				},
+			},
+			expectCmd: false,
+		},
+
+		{
+			name: "ServicesPolled with running container closes streamer on state change",
+			setup: func(t *testing.T) servicehost.Model {
+				t.Helper()
+				m, s := newModel(t)
+
+				s.EXPECT().Start(mock.Anything, testProject+"-"+svcName+"-1").Return()
+				s.EXPECT().Next().Return(func() tea.Msg { return nil })
+
+				m, _ = m.Update(msgs.ServicesPolled{
+					Runtimes: map[string]*domain.ServiceRuntimeData{
+						svcName: {State: domain.ServiceStateRunning},
+					},
+				})
+
+				s.EXPECT().Close().Return()
+
+				return m
+			},
+			msg: msgs.ServicesPolled{
+				Runtimes: map[string]*domain.ServiceRuntimeData{
+					svcName: {State: domain.ServiceStateExited},
+				},
+			},
+			expectCmd: false,
+		},
+
+		{
+			name: "LogLinesAvailable emits streamer.Next and resets retryCount",
 			setup: func(t *testing.T) servicehost.Model {
 				t.Helper()
 				m, s := newModel(t)
@@ -145,7 +242,7 @@ func TestUpdate(t *testing.T) {
 		},
 
 		{
-			name: "LogStreamContainerNotFound closes streamer and schedules retry",
+			name: "LogStreamContainerNotFound closes streamer without retry",
 			setup: func(t *testing.T) servicehost.Model {
 				t.Helper()
 				m, s := newModel(t)
@@ -154,21 +251,18 @@ func TestUpdate(t *testing.T) {
 				return m
 			},
 			msg:       msgs.LogStreamContainerNotFound{ServiceName: svcName},
-			expectCmd: true,
+			expectCmd: false,
 		},
 
 		{
-			name: "LogStreamRetryTick restarts streamer when streamerStarted is false",
+			name: "LogStreamRetryTick starts streamer when stopped",
 			setup: func(t *testing.T) servicehost.Model {
 				t.Helper()
 				m, s := newModel(t)
 
-				// Simulate a previous error that reset the flag
 				s.EXPECT().Close().Return()
 
-				m, _ = m.Update(msgs.LogStreamContainerNotFound{ServiceName: svcName})
-
-				// Expect Start + Next on retry tick
+				m, _ = m.Update(msgs.LogStreamError{Err: nil, ServiceName: svcName})
 
 				s.EXPECT().Start(mock.Anything, testProject+"-"+svcName+"-1").Return()
 				s.EXPECT().Next().Return(func() tea.Msg {
@@ -187,11 +281,14 @@ func TestUpdate(t *testing.T) {
 				t.Helper()
 				m, s := newModel(t)
 
-				// Start the streamer normally
 				s.EXPECT().Start(mock.Anything, testProject+"-"+svcName+"-1").Return()
 				s.EXPECT().Next().Return(func() tea.Msg { return nil })
 
-				m, _ = m.Update(msgs.DaemonConnected{})
+				m, _ = m.Update(msgs.ServicesPolled{
+					Runtimes: map[string]*domain.ServiceRuntimeData{
+						svcName: {State: domain.ServiceStateRunning},
+					},
+				})
 
 				return m
 			},
@@ -200,27 +297,17 @@ func TestUpdate(t *testing.T) {
 		},
 
 		{
-			name: "KeyPressMsg when not selected is no-op",
+			name: "ServicesPolled error is no-op",
 			setup: func(t *testing.T) servicehost.Model {
 				t.Helper()
 				m, _ := newModel(t)
 
 				return m
 			},
-			msg:         tea.KeyPressMsg{},
-			expectedMsg: nil,
-		},
-
-		{
-			name: "theme.Changed updates stored theme",
-			setup: func(t *testing.T) servicehost.Model {
-				t.Helper()
-				m, _ := newModel(t)
-
-				return m
+			msg: msgs.ServicesPolled{
+				Err: assert.AnError,
 			},
-			msg:         theme.Changed{Theme: theme.DefaultLight()},
-			expectedMsg: nil,
+			expectCmd: false,
 		},
 	}
 
@@ -256,20 +343,24 @@ func TestUpdate_LogStreamErrorRecoveryCycle(t *testing.T) {
 
 		m, s := newModel(t)
 
-		// Step 1: DaemonConnected starts the streamer
+		// Step 1: ServicesPolled with running container starts the streamer
 		s.EXPECT().Start(mock.Anything, testProject+"-"+svcName+"-1").Return().Once()
 		s.EXPECT().Next().Return(func() tea.Msg {
 			return msgs.LogLinesAvailable{}
 		}).Once()
 
-		m, cmd := m.Update(msgs.DaemonConnected{})
+		m, cmd := m.Update(msgs.ServicesPolled{
+			Runtimes: map[string]*domain.ServiceRuntimeData{
+				svcName: {State: domain.ServiceStateRunning},
+			},
+		})
 		require.NotNil(t, cmd)
 		require.Equal(t, msgs.LogLinesAvailable{}, cmd())
 
-		// Step 2: LogStreamContainerNotFound → Close + retry tick
+		// Step 2: LogStreamError → Close + retry tick
 		s.EXPECT().Close().Return().Once()
 
-		m, cmd = m.Update(msgs.LogStreamContainerNotFound{ServiceName: svcName})
+		m, cmd = m.Update(msgs.LogStreamError{Err: nil, ServiceName: svcName})
 		require.NotNil(t, cmd) // tea.Tick cmd — non-deterministic, skip calling it
 
 		// Step 3: LogStreamRetryTick → Start + Next
@@ -283,7 +374,7 @@ func TestUpdate_LogStreamErrorRecoveryCycle(t *testing.T) {
 		result := cmd()
 		require.Equal(t, msgs.LogLinesAvailable{}, result)
 
-		// Streamer started again — verify LogLinesAvailable re-subscribes
+		// Streamer started again — verify LogLinesAvailable re-subscribes and resets retryCount
 		s.EXPECT().Next().Return(func() tea.Msg {
 			return msgs.LogLinesAvailable{}
 		}).Once()
@@ -291,6 +382,51 @@ func TestUpdate_LogStreamErrorRecoveryCycle(t *testing.T) {
 		_, cmd = m.Update(msgs.LogLinesAvailable{})
 		require.NotNil(t, cmd)
 		require.Equal(t, msgs.LogLinesAvailable{}, cmd())
+	})
+}
+
+func TestUpdate_ContainerStopsThenStarts(t *testing.T) {
+	t.Parallel()
+
+	t.Run("closes streamer on container stop, restarts on container start", func(t *testing.T) {
+		t.Parallel()
+
+		m, s := newModel(t)
+
+		// Start streamer
+		s.EXPECT().Start(mock.Anything, testProject+"-"+svcName+"-1").Return().Once()
+		s.EXPECT().Next().Return(func() tea.Msg { return nil }).Once()
+
+		runningState := msgs.ServicesPolled{
+			Runtimes: map[string]*domain.ServiceRuntimeData{
+				svcName: {State: domain.ServiceStateRunning},
+			},
+		}
+		m, cmd := m.Update(runningState)
+		require.NotNil(t, cmd)
+
+		// Container stops
+		s.EXPECT().Close().Return().Once()
+
+		exitedState := msgs.ServicesPolled{
+			Runtimes: map[string]*domain.ServiceRuntimeData{
+				svcName: {State: domain.ServiceStateExited},
+			},
+		}
+		m, cmd = m.Update(exitedState)
+		require.Nil(t, cmd)
+
+		// Container starts again
+		s.EXPECT().Start(mock.Anything, testProject+"-"+svcName+"-1").Return().Once()
+		s.EXPECT().Next().Return(func() tea.Msg { return nil }).Once()
+
+		runningState2 := msgs.ServicesPolled{
+			Runtimes: map[string]*domain.ServiceRuntimeData{
+				svcName: {State: domain.ServiceStateRunning},
+			},
+		}
+		_, cmd = m.Update(runningState2)
+		require.NotNil(t, cmd)
 	})
 }
 

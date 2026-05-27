@@ -3,6 +3,7 @@
 package servicepanel
 
 import (
+	"net/http"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -15,24 +16,50 @@ import (
 	"github.com/ma-tf/ogle/internal/ui/theme"
 )
 
+// Option configures a Model.
+type Option func(*Model)
+
+// WithStreamerHTTPClient sets the HTTP client used by every log streamer
+// created for this panel. If nil (the default), each streamer dials the Docker
+// Unix socket directly.
+func WithStreamerHTTPClient(client *http.Client) Option {
+	return func(m *Model) {
+		m.streamerClient = client
+	}
+}
+
 // Model manages a set of per-service hosts and the state polling lifecycle.
 type Model struct {
-	hosts         []servicehost.Model
-	theme         *theme.Theme
-	pollerStarted bool
+	hosts          []servicehost.Model
+	theme          *theme.Theme
+	pollerStarted  bool
+	streamerClient *http.Client
 }
 
 // New constructs a Model with one host per project service.
-func New(project *domain.Project, th *theme.Theme, w, h, logBufferCap int) Model {
+func New(project *domain.Project, th *theme.Theme, w, h, logBufferCap int, opts ...Option) Model {
+	var m Model
+	for _, opt := range opts {
+		opt(&m)
+	}
+
 	hosts := make([]servicehost.Model, len(project.Services))
 	for i, svc := range project.Services {
-		hosts[i] = servicehost.New(th, svc, project.Name, w, h, logBufferCap, logs.New(svc.Name))
+		streamerOpts := []logs.Option{}
+		if m.streamerClient != nil {
+			streamerOpts = append(streamerOpts, logs.WithHTTPClient(m.streamerClient))
+		}
+
+		streamer := logs.New(svc.Name, streamerOpts...)
+
+		hosts[i] = servicehost.New(th, svc, project.Name, w, h, logBufferCap, streamer)
 	}
 
 	return Model{
-		hosts:         hosts,
-		theme:         th,
-		pollerStarted: false,
+		hosts:          hosts,
+		theme:          th,
+		pollerStarted:  false,
+		streamerClient: m.streamerClient,
 	}
 }
 

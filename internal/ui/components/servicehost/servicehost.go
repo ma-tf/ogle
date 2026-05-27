@@ -13,7 +13,10 @@ import (
 	"github.com/ma-tf/ogle/internal/ui/theme"
 )
 
-const logStreamRetryDelay = 2 * time.Second
+const (
+	baseRetryDelay = 2 * time.Second
+	maxRetryDelay  = 30 * time.Second
+)
 
 // Model wraps a per-service log pane and streamer into a compositor-hostable unit.
 type Model struct {
@@ -24,6 +27,7 @@ type Model struct {
 	theme           *theme.Theme
 	project         string
 	selected        bool
+	retryCount      int
 }
 
 // New constructs a host for the given service.
@@ -42,6 +46,7 @@ func New(
 		theme:           th,
 		project:         project,
 		selected:        false,
+		retryCount:      0,
 	}
 }
 
@@ -65,24 +70,42 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			return m, nil
 		}
 
-	case msgs.DaemonConnected:
-		if !m.streamerStarted {
+	case msgs.ServicesPolled:
+		if msg.Err != nil {
+			break
+		}
+
+		rt, hasRuntime := msg.Runtimes[m.def.Name]
+		isRunning := hasRuntime && rt.State == domain.ServiceStateRunning
+
+		if isRunning && !m.streamerStarted {
 			var cmd tea.Cmd
 
 			m, cmd = m.startStreamer()
 			cmds = append(cmds, cmd)
+		} else if !isRunning && m.streamerStarted {
+			m.streamer.Close()
+			m.streamerStarted = false
+			m.retryCount = 0
 		}
 
 	case msgs.LogLinesAvailable:
+		m.retryCount = 0
 		cmds = append(cmds, m.streamer.Next())
 
-	case msgs.LogStreamError, msgs.LogStreamContainerNotFound:
+	case msgs.LogStreamContainerNotFound:
+		m.streamer.Close()
+		m.streamerStarted = false
+		m.retryCount = 0
+
+	case msgs.LogStreamError:
 		m.streamer.Close()
 		m.streamerStarted = false
 
-		cmds = append(cmds, tea.Tick(logStreamRetryDelay, func(_ time.Time) tea.Msg {
+		cmds = append(cmds, tea.Tick(m.retryDelay(), func(_ time.Time) tea.Msg {
 			return msgs.LogStreamRetryTick{}
 		}))
+		m.retryCount++
 
 	case msgs.LogStreamRetryTick:
 		if !m.streamerStarted {
@@ -104,6 +127,15 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	}
 
 	return m, tea.Batch(cmds...)
+}
+
+func (m Model) retryDelay() time.Duration {
+	d := baseRetryDelay * (1 << m.retryCount)
+	if d > maxRetryDelay {
+		return maxRetryDelay
+	}
+
+	return d
 }
 
 // startStreamer begins log streaming for the service and returns a Next cmd.

@@ -20,7 +20,10 @@ import (
 	"github.com/ma-tf/ogle/internal/ui/theme"
 )
 
-const svcWeb = "web"
+const (
+	svcWeb = "web"
+	svcAPI = "api"
+)
 
 //nolint:gochecknoglobals // shared test fixtures
 var testProject = &domain.Project{
@@ -28,7 +31,7 @@ var testProject = &domain.Project{
 	File: "/path/to/compose.yaml",
 	Services: []domain.ServiceDef{
 		{Name: svcWeb, Image: "nginx:latest"},
-		{Name: "api", Image: "api:latest"},
+		{Name: svcAPI, Image: "api:latest"},
 	},
 }
 
