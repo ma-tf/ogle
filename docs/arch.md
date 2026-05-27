@@ -12,16 +12,16 @@ internal/
 │   └── msgs.go
 ├── profiling/                        # profiling utilities
 ├── services/
-│   ├── docker/                       # Docker daemon connectivity
+│   ├── docker/                       # Docker daemon connectivity (Commander, Option/WithCommander/WithHTTPClient, ParsePsOutput/ParseState)
 │   │   ├── service.go                # Docker interface + Service (connect, ps, stop, start, restart, rebuild)
-│   │   ├── actions.go                # service action implementations (docker compose CLI)
-│   │   ├── ps.go                     # state polling (docker compose ps --format json)
+│   │   ├── actions.go                # Commander interface + realCommander, service action implementations
+│   │   ├── ps.go                     # Ps() using Commander, ParsePsOutput(), ParseState()
 │   │   ├── connection/               # connection state machine (Machine: Connecting/Connected/Unavailable)
 │   │   └── logs/                     # LogStreamer: Docker log streaming
 │   │       ├── streamer.go           # Streamer interface
 │   │       └── service.go            # LogStreamer implementation
 │   ├── parser/                       # Compose File parsing
-│   │   └── service.go                # Parser interface, Parse()
+│   │   └── service.go                # Parser interface, Parse(), NormalizePorts/SplitByColon/FindSlash
 │   ├── scanner/                      # Compose File discovery
 │   │   └── service.go                # Scanner interface, ScanAll(), KnownFilenames()
 │   └── watcher/                      # directory monitoring via fsnotify

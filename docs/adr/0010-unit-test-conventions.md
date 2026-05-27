@@ -18,9 +18,11 @@ Options considered per decision are noted inline.
 ## Decision
 
 **Test package style:** `package foo_test` (black-box) throughout. Internal
-whitebox tests are not used except for `export_test.go` files, which are the
-standard Go pattern for exposing private fields to black-box tests in the same
-package. Currently one such file exists (`internal/app/export_test.go`).
+whitebox tests are not used. The `export_test.go` pattern was initially adopted
+but has since been replaced with constructor options (`WithCommander`,
+`WithHTTPClient`, `WithReadFile`) and exported pure functions/types
+(e.g. `ParsePsOutput`, `ParseState`, `NormalizePorts`, `ApplyOverrides`,
+`UserThemeFile`, `ErrUnexpectedStatus`). No `export_test.go` files remain.
 Rationale: forces tests to interact only through the public API, preventing
 tests from encoding implementation details.
 
