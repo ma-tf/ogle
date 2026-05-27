@@ -41,15 +41,42 @@ func WithCommander(c Commander) Option {
 	}
 }
 
+// WithHTTPClient sets the HTTP client used for daemon connectivity.
+// The default client dials the Docker Unix socket. Tests supply a client
+// pointed at an httptest.NewServer.
+func WithHTTPClient(c *http.Client) Option {
+	return func(s *Service) {
+		s.httpClient = c
+	}
+}
+
 // Service implements Docker using the Docker Unix socket and docker compose CLI.
 type Service struct {
-	commander Commander
+	commander  Commander
+	httpClient *http.Client
 }
 
 // New returns a Service ready for use.
 func New(opts ...Option) *Service {
+	transport := &http.Transport{
+		DialContext: func(dialCtx context.Context, _, _ string) (net.Conn, error) {
+			d := net.Dialer{Timeout: dialTimeout}
+
+			conn, err := d.DialContext(dialCtx, "unix", socketPath)
+			if err != nil {
+				return nil, fmt.Errorf("dial docker socket: %w", err)
+			}
+
+			return conn, nil
+		},
+	}
+
 	s := &Service{
 		commander: realCommander{},
+		httpClient: &http.Client{
+			Transport: transport,
+			Timeout:   requestTimeout,
+		},
 	}
 
 	for _, opt := range opts {
@@ -80,31 +107,12 @@ const (
 // responsible for scheduling retries.
 func (s *Service) Connect(ctx context.Context) tea.Cmd {
 	return func() tea.Msg {
-		transport := &http.Transport{
-			DialContext: func(dialCtx context.Context, _, _ string) (net.Conn, error) {
-				d := net.Dialer{Timeout: dialTimeout}
-
-				conn, err := d.DialContext(dialCtx, "unix", socketPath)
-				if err != nil {
-					return nil, fmt.Errorf("dial docker socket: %w", err)
-				}
-
-				return conn, nil
-			},
-		}
-
-		client := &http.Client{
-			Transport: transport,
-			Timeout:   requestTimeout,
-		}
-		defer client.CloseIdleConnections()
-
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, pingPath, nil)
 		if err != nil {
 			return msgs.DaemonUnavailable{Err: fmt.Errorf("build ping request: %w", err)}
 		}
 
-		resp, err := client.Do(req)
+		resp, err := s.httpClient.Do(req)
 		if err != nil {
 			return msgs.DaemonUnavailable{Err: fmt.Errorf("ping docker daemon: %w", err)}
 		}
