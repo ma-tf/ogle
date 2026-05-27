@@ -1,14 +1,135 @@
 package docker_test
 
 import (
+	"context"
+	"net"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ma-tf/ogle/internal/domain"
-	"github.com/ma-tf/ogle/internal/services/docker"
+	"github.com/ma-tf/ogle/internal/msgs"
+	svcdocker "github.com/ma-tf/ogle/internal/services/docker"
 )
+
+// testServerClient returns an [http.Client] whose transport always dials the
+// given test server, regardless of the URL in the request. This lets us send
+// requests with the production pingPath (http://localhost/_ping) while still
+// routing them to the test server.
+func testServerClient(srv *httptest.Server) *http.Client {
+	return &http.Client{
+		Transport: &http.Transport{
+			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+				var d net.Dialer
+
+				return d.DialContext(
+					ctx,
+					srv.Listener.Addr().Network(),
+					srv.Listener.Addr().String(),
+				)
+			},
+		},
+	}
+}
+
+func TestConnect(t *testing.T) {
+	t.Parallel()
+
+	type testCase struct {
+		name    string
+		handler http.HandlerFunc
+		// arrange
+		closeServer bool
+		ctx         func() context.Context
+		// assert
+		expectedConnected   bool
+		expectedErrWrapped  error
+		expectedErrContains string
+	}
+
+	tt := []testCase{
+		{
+			name: "200 ok",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			},
+			ctx:               context.Background,
+			expectedConnected: true,
+		},
+		{
+			name: "non-200 status",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusInternalServerError)
+			},
+			ctx:                context.Background,
+			expectedConnected:  false,
+			expectedErrWrapped: svcdocker.ErrUnexpectedPingStatus,
+		},
+		{
+			name: "dial error",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			},
+			closeServer:         true,
+			ctx:                 context.Background,
+			expectedConnected:   false,
+			expectedErrContains: "connect",
+		},
+		{
+			name: "nil context",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			},
+			ctx: func() context.Context {
+				return nil
+			},
+			expectedConnected:   false,
+			expectedErrContains: "build ping request",
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			srv := httptest.NewServer(tc.handler)
+			t.Cleanup(srv.Close)
+
+			client := testServerClient(srv)
+
+			if tc.closeServer {
+				srv.Close()
+			}
+
+			svc := svcdocker.New(svcdocker.WithHTTPClient(client))
+			cmd := svc.Connect(tc.ctx())
+			require.NotNil(t, cmd)
+
+			msg := cmd()
+			require.NotNil(t, msg)
+
+			if tc.expectedConnected {
+				_, ok := msg.(msgs.DaemonConnected)
+				require.True(t, ok, "expected DaemonConnected, got %T", msg)
+			} else {
+				daemonUnavailable, ok := msg.(msgs.DaemonUnavailable)
+				require.True(t, ok, "expected DaemonUnavailable, got %T", msg)
+				require.Error(t, daemonUnavailable.Err)
+
+				if tc.expectedErrWrapped != nil {
+					require.ErrorIs(t, daemonUnavailable.Err, tc.expectedErrWrapped)
+				}
+
+				if tc.expectedErrContains != "" {
+					require.ErrorContains(t, daemonUnavailable.Err, tc.expectedErrContains)
+				}
+			}
+		})
+	}
+}
 
 func TestParsePsOutput(t *testing.T) {
 	t.Parallel()
@@ -61,7 +182,7 @@ func TestParsePsOutput(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			result, err := docker.ParsePsOutput(tc.input)
+			result, err := svcdocker.ParsePsOutput(tc.input)
 
 			if tc.name == "malformed json" {
 				require.Error(t, err)
@@ -115,7 +236,7 @@ func TestParsePsOutputServiceRuntimeData(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			result, err := docker.ParsePsOutput(tc.input)
+			result, err := svcdocker.ParsePsOutput(tc.input)
 			require.NoError(t, err)
 
 			for serviceName, expectedRuntime := range tc.expected {
@@ -152,7 +273,7 @@ func TestParseState(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			result := docker.ParseState(tc.input)
+			result := svcdocker.ParseState(tc.input)
 			assert.Equal(t, tc.expected, result)
 		})
 	}
