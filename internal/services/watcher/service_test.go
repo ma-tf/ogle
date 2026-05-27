@@ -1,12 +1,13 @@
 package watcher_test
 
 import (
-	"log/slog"
 	"os"
 	"path/filepath"
 	"sync"
 	"testing"
+	"time"
 
+	tea "charm.land/bubbletea/v2"
 	"github.com/fsnotify/fsnotify"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -71,7 +72,7 @@ func TestNewWithFileWatcher_AddCalled(t *testing.T) {
 	sc.EXPECT().KnownFilenames().Return([]string{knownFilename}).Maybe()
 
 	dir := t.TempDir()
-	w, err := watcher.NewWithFileWatcher(dir, slog.Default(), "", sc, fw)
+	w, err := watcher.NewWithFileWatcher(dir, "", sc, fw)
 	require.NoError(t, err)
 
 	defer w.Close()
@@ -89,8 +90,10 @@ func TestRun_EventCreate(t *testing.T) {
 	sc.EXPECT().KnownFilenames().Return([]string{knownFilename}).Maybe()
 	sc.EXPECT().ScanAll(mock.Anything).Return([]string{knownFilePath}).Once()
 
-	w, err := watcher.NewWithFileWatcher("/dir", slog.Default(), "", sc, fw)
+	w, err := watcher.NewWithFileWatcher("/dir", "", sc, fw)
 	require.NoError(t, err)
+
+	w.Start(func(tea.Msg) {})
 
 	defer w.Close()
 
@@ -111,8 +114,10 @@ func TestRun_EventWrite(t *testing.T) {
 	sc.EXPECT().KnownFilenames().Return([]string{knownFilename}).Maybe()
 	sc.EXPECT().ScanAll(mock.Anything).Return([]string{knownFilePath}).Once()
 
-	w, err := watcher.NewWithFileWatcher("/dir", slog.Default(), "", sc, fw)
+	w, err := watcher.NewWithFileWatcher("/dir", "", sc, fw)
 	require.NoError(t, err)
+
+	w.Start(func(tea.Msg) {})
 
 	defer w.Close()
 
@@ -132,8 +137,10 @@ func TestRun_EventRemove(t *testing.T) {
 	sc.EXPECT().KnownFilenames().Return([]string{knownFilename}).Maybe()
 	sc.EXPECT().ScanAll(mock.Anything).Return(nil).Once()
 
-	w, err := watcher.NewWithFileWatcher("/dir", slog.Default(), "", sc, fw)
+	w, err := watcher.NewWithFileWatcher("/dir", "", sc, fw)
 	require.NoError(t, err)
+
+	w.Start(func(tea.Msg) {})
 
 	defer w.Close()
 
@@ -154,8 +161,10 @@ func TestRun_MultipleEvents(t *testing.T) {
 	sc.EXPECT().KnownFilenames().Return([]string{knownFilename}).Maybe()
 	sc.EXPECT().ScanAll(mock.Anything).Return([]string{knownFilePath}).Times(2)
 
-	w, err := watcher.NewWithFileWatcher("/dir", slog.Default(), "", sc, fw)
+	w, err := watcher.NewWithFileWatcher("/dir", "", sc, fw)
 	require.NoError(t, err)
+
+	w.Start(func(tea.Msg) {})
 
 	defer w.Close()
 
@@ -182,8 +191,16 @@ func TestRun_ErrorReceived(t *testing.T) {
 	sc.EXPECT().KnownFilenames().Return([]string{knownFilename}).Maybe()
 	sc.EXPECT().ScanAll(mock.Anything).Return([]string{knownFilePath}).Once()
 
-	w, err := watcher.NewWithFileWatcher("/dir", slog.Default(), "", sc, fw)
+	var gotErr string
+
+	w, err := watcher.NewWithFileWatcher("/dir", "", sc, fw)
 	require.NoError(t, err)
+
+	w.Start(func(msg tea.Msg) {
+		if em, ok := msg.(msgs.DisplayError); ok {
+			gotErr = em.Err
+		}
+	})
 
 	defer w.Close()
 
@@ -195,6 +212,10 @@ func TestRun_ErrorReceived(t *testing.T) {
 	require.NotNil(t, result)
 	_, ok := result.(msgs.FileAvailabilityChanged)
 	require.True(t, ok)
+
+	require.Eventually(t, func() bool {
+		return gotErr != ""
+	}, time.Second, 10*time.Millisecond, "expected DisplayError to be delivered")
 }
 
 func TestRun_FilteredEvents(t *testing.T) {
@@ -226,8 +247,10 @@ func TestRun_FilteredEvents(t *testing.T) {
 			sc.EXPECT().KnownFilenames().Return([]string{knownFilename}).Maybe()
 			sc.EXPECT().ScanAll(mock.Anything).Return([]string{}).Once()
 
-			w, err := watcher.NewWithFileWatcher("/dir", slog.Default(), "", sc, fw)
+			w, err := watcher.NewWithFileWatcher("/dir", "", sc, fw)
 			require.NoError(t, err)
+
+			w.Start(func(tea.Msg) {})
 
 			defer w.Close()
 
@@ -250,7 +273,7 @@ func TestRun_CloseTerminates(t *testing.T) {
 	sc := mocks.NewMockScanner(t)
 	sc.EXPECT().KnownFilenames().Return([]string{knownFilename}).Maybe()
 
-	w, err := watcher.NewWithFileWatcher("/dir", slog.Default(), "", sc, fw)
+	w, err := watcher.NewWithFileWatcher("/dir", "", sc, fw)
 	require.NoError(t, err)
 
 	require.NoError(t, w.Close())
@@ -271,7 +294,7 @@ func TestSnapshot(t *testing.T) {
 	sc.EXPECT().KnownFilenames().Return([]string{knownFilename}).Maybe()
 	sc.EXPECT().ScanAll("/dir").Return([]string{knownFilePath})
 
-	w, err := watcher.NewWithFileWatcher("/dir", slog.Default(), "", sc, fw)
+	w, err := watcher.NewWithFileWatcher("/dir", "", sc, fw)
 	require.NoError(t, err)
 
 	defer w.Close()
@@ -295,7 +318,7 @@ func TestSnapshot_WithExtraFile(t *testing.T) {
 	sc.EXPECT().KnownFilenames().Return([]string{knownFilename}).Maybe()
 	sc.EXPECT().ScanAll(dir).Return(nil)
 
-	w, err := watcher.NewWithFileWatcher(dir, slog.Default(), extraFile, sc, fw)
+	w, err := watcher.NewWithFileWatcher(dir, extraFile, sc, fw)
 	require.NoError(t, err)
 
 	defer w.Close()
@@ -314,7 +337,7 @@ func TestDir(t *testing.T) {
 	sc := mocks.NewMockScanner(t)
 	sc.EXPECT().KnownFilenames().Return([]string{knownFilename}).Maybe()
 
-	w, err := watcher.NewWithFileWatcher("/mydir", slog.Default(), "", sc, fw)
+	w, err := watcher.NewWithFileWatcher("/mydir", "", sc, fw)
 	require.NoError(t, err)
 
 	defer w.Close()
@@ -329,7 +352,7 @@ func TestNext_ReturnsNilAfterClose(t *testing.T) {
 	sc := mocks.NewMockScanner(t)
 	sc.EXPECT().KnownFilenames().Return([]string{knownFilename}).Maybe()
 
-	w, err := watcher.NewWithFileWatcher("/dir", slog.Default(), "", sc, fw)
+	w, err := watcher.NewWithFileWatcher("/dir", "", sc, fw)
 	require.NoError(t, err)
 
 	require.NoError(t, w.Close())
@@ -344,7 +367,7 @@ func TestClose_Idempotent(t *testing.T) {
 	sc := mocks.NewMockScanner(t)
 	sc.EXPECT().KnownFilenames().Return([]string{knownFilename}).Maybe()
 
-	w, err := watcher.NewWithFileWatcher("/dir", slog.Default(), "", sc, fw)
+	w, err := watcher.NewWithFileWatcher("/dir", "", sc, fw)
 	require.NoError(t, err)
 
 	require.NoError(t, w.Close())
@@ -362,7 +385,7 @@ func TestNewWithFileWatcher_AddError(t *testing.T) {
 	fw.addErr = assert.AnError
 	sc := mocks.NewMockScanner(t)
 
-	w, err := watcher.NewWithFileWatcher("/dir", slog.Default(), "", sc, fw)
+	w, err := watcher.NewWithFileWatcher("/dir", "", sc, fw)
 	require.ErrorIs(t, err, watcher.ErrCreateWatcher)
 	require.Nil(t, w)
 	require.True(t, fw.closed)
@@ -376,7 +399,7 @@ func TestClose_Error(t *testing.T) {
 	sc := mocks.NewMockScanner(t)
 	sc.EXPECT().KnownFilenames().Return([]string{knownFilename}).Maybe()
 
-	w, err := watcher.NewWithFileWatcher("/dir", slog.Default(), "", sc, fw)
+	w, err := watcher.NewWithFileWatcher("/dir", "", sc, fw)
 	require.NoError(t, err)
 
 	err = w.Close()
@@ -391,8 +414,10 @@ func TestRun_EventsChannelClosed(t *testing.T) {
 	sc := mocks.NewMockScanner(t)
 	sc.EXPECT().KnownFilenames().Return([]string{knownFilename}).Maybe()
 
-	w, err := watcher.NewWithFileWatcher("/dir", slog.Default(), "", sc, fw)
+	w, err := watcher.NewWithFileWatcher("/dir", "", sc, fw)
 	require.NoError(t, err)
+
+	w.Start(func(tea.Msg) {})
 
 	close(fw.eventsCh)
 
@@ -409,8 +434,10 @@ func TestRun_ErrorsChannelClosed(t *testing.T) {
 	sc := mocks.NewMockScanner(t)
 	sc.EXPECT().KnownFilenames().Return([]string{knownFilename}).Maybe()
 
-	w, err := watcher.NewWithFileWatcher("/dir", slog.Default(), "", sc, fw)
+	w, err := watcher.NewWithFileWatcher("/dir", "", sc, fw)
 	require.NoError(t, err)
+
+	w.Start(func(tea.Msg) {})
 
 	close(fw.errorsCh)
 
@@ -432,8 +459,10 @@ func TestRun_ExtraFileEvent(t *testing.T) {
 	sc.EXPECT().KnownFilenames().Return([]string{knownFilename}).Maybe()
 	sc.EXPECT().ScanAll(dir).Return(nil).Once()
 
-	w, err := watcher.NewWithFileWatcher(dir, slog.Default(), extraFile, sc, fw)
+	w, err := watcher.NewWithFileWatcher(dir, extraFile, sc, fw)
 	require.NoError(t, err)
+
+	w.Start(func(tea.Msg) {})
 
 	defer w.Close()
 
@@ -457,8 +486,10 @@ func TestRun_ExtraFileEvent_AbsentFile(t *testing.T) {
 	sc.EXPECT().KnownFilenames().Return([]string{knownFilename}).Maybe()
 	sc.EXPECT().ScanAll(dir).Return(nil).Once()
 
-	w, err := watcher.NewWithFileWatcher(dir, slog.Default(), extraFile, sc, fw)
+	w, err := watcher.NewWithFileWatcher(dir, extraFile, sc, fw)
 	require.NoError(t, err)
+
+	w.Start(func(tea.Msg) {})
 
 	defer w.Close()
 

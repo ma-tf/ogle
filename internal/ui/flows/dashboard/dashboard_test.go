@@ -2,7 +2,6 @@ package dashboard_test
 
 import (
 	"context"
-	"log/slog"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
@@ -45,7 +44,6 @@ func newModel(
 	return dashboard.New(
 		context.Background(),
 		testProject,
-		slog.Default(),
 		theme.Default(),
 		config.Defaults(),
 		zone.New(),

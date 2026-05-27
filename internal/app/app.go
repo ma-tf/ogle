@@ -6,7 +6,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -59,7 +58,6 @@ type Model struct {
 	cfg         config.Config
 	configPath  string
 	projectFile string
-	log         *slog.Logger
 	theme       *theme.Theme
 	zm          *zone.Manager
 	docker      svcdocker.Docker
@@ -90,7 +88,6 @@ func New(
 	cfg config.Config,
 	configPath string,
 	projectFile string,
-	log *slog.Logger,
 	th *theme.Theme,
 	dockerSvc svcdocker.Docker,
 	parseSvc parser.Parser,
@@ -124,7 +121,6 @@ func New(
 		dash = dashboard.New(
 			ctx,
 			project,
-			log,
 			th,
 			cfg,
 			zm,
@@ -141,7 +137,6 @@ func New(
 		cfg:          cfg,
 		configPath:   configPath,
 		projectFile:  pf,
-		log:          log,
 		theme:        th,
 		zm:           zm,
 		docker:       dockerSvc,
@@ -213,19 +208,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case profiling.ProfilesDumped:
 		if msg.Err != nil {
-			m.log.ErrorContext(m.ctx,
-				"profiling dump failed",
-				slog.Any("err", msg.Err),
-			)
-		} else {
-			m.log.InfoContext(m.ctx,
-				"profiling dump written",
-				slog.String("goroutine", msg.GoroutinePath),
-				slog.String("heap", msg.HeapPath),
-			)
+			return m, func() tea.Msg {
+				return msgs.DisplayError{
+					Err: fmt.Sprintf("profiling dump failed: %v", msg.Err),
+				}
+			}
 		}
 
-		return m, nil
+		return m, func() tea.Msg {
+			return msgs.DisplayStatus{
+				Msg: fmt.Sprintf("profiling dump written: goroutine=%s heap=%s",
+					msg.GoroutinePath, msg.HeapPath),
+			}
+		}
 
 	case msgs.FileAvailabilityChanged:
 		return m.handleFileAvailabilityChanged(msg)
@@ -275,13 +270,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleSettingsApplied(msg msgs.SettingsApplied) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+
 	th, err := theme.Load(msg.Theme, filepath.Dir(m.configPath))
 	if err != nil {
-		m.log.WarnContext(
-			m.ctx,
-			"settings: theme load failed, keeping previous",
-			slog.Any("err", err),
-		)
+		cmds = append(cmds, func() tea.Msg {
+			return msgs.DisplayError{
+				Err: fmt.Sprintf("theme: %v", err),
+			}
+		})
 	} else {
 		m.theme = th
 	}
@@ -290,14 +287,16 @@ func (m Model) handleSettingsApplied(msg msgs.SettingsApplied) (tea.Model, tea.C
 	m.cfg.LogBufferCap = msg.LogBufferCap
 
 	if saveErr := config.Save(m.configPath, m.cfg); saveErr != nil {
-		m.log.WarnContext(
-			m.ctx,
-			"settings: failed to save config",
-			slog.Any("err", saveErr),
-		)
+		cmds = append(cmds, func() tea.Msg {
+			return msgs.DisplayError{
+				Err: fmt.Sprintf("config save: %v", saveErr),
+			}
+		})
 	}
 
-	return m, func() tea.Msg { return theme.Changed{Theme: m.theme} }
+	cmds = append(cmds, func() tea.Msg { return theme.Changed{Theme: m.theme} })
+
+	return m, tea.Batch(cmds...)
 }
 
 func (m Model) handleKeyPress(msg tea.KeyPressMsg) (Model, tea.Cmd) {
@@ -336,7 +335,6 @@ func (m Model) handleProjectLoaded(msg msgs.ProjectLoaded) (Model, tea.Cmd) {
 	m.dashboard = dashboard.New(
 		m.ctx,
 		msg.Project,
-		m.log,
 		m.theme,
 		m.cfg,
 		m.zm,

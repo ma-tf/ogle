@@ -5,7 +5,7 @@ package dashboard
 
 import (
 	"context"
-	"log/slog"
+	"fmt"
 	"slices"
 
 	"charm.land/bubbles/v2/key"
@@ -33,7 +33,6 @@ const (
 // Model is the dashboard flow orchestrator.
 type Model struct {
 	ctx       context.Context
-	log       *slog.Logger
 	parser    parser.Parser
 	project   *domain.Project
 	th        *theme.Theme
@@ -56,7 +55,6 @@ type Model struct {
 func New(
 	ctx context.Context,
 	project *domain.Project,
-	log *slog.Logger,
 	th *theme.Theme,
 	cfg config.Config,
 	zm *zone.Manager,
@@ -72,7 +70,6 @@ func New(
 
 	return Model{
 		ctx:             ctx,
-		log:             log,
 		parser:          p,
 		project:         project,
 		th:              th,
@@ -285,15 +282,14 @@ func (m Model) handleFileAvailabilityChanged(files []string) (Model, tea.Cmd) {
 
 	p, err := m.parser.Parse(m.project.File)
 	if err != nil {
-		m.log.WarnContext(m.ctx,
-			"dashboard: re-parse failed, keeping current state",
-			slog.Any("err", err),
-		)
-
-		return m, nil
+		return m, func() tea.Msg {
+			return msgs.DisplayError{
+				Err: fmt.Sprintf("re-parse failed: %v", err),
+			}
+		}
 	}
 
-	newDash := New(m.ctx, p, m.log, m.th, m.cfg, m.zm, m.configDir, m.w, m.h, m.docker, m.parser)
+	newDash := New(m.ctx, p, m.th, m.cfg, m.zm, m.configDir, m.w, m.h, m.docker, m.parser)
 
 	return newDash, newDash.Init()
 }

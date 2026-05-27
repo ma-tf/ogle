@@ -215,3 +215,43 @@ func (_c *MockWatcher_Snapshot_Call) RunAndReturn(run func() tea.Cmd) *MockWatch
 	_c.Call.Return(run)
 	return _c
 }
+
+// Start provides a mock function for the type MockWatcher
+func (_mock *MockWatcher) Start(sendMsg func(tea.Msg)) {
+	_mock.Called(sendMsg)
+	return
+}
+
+// MockWatcher_Start_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Start'
+type MockWatcher_Start_Call struct {
+	*mock.Call
+}
+
+// Start is a helper method to define mock.On call
+//   - sendMsg func(tea.Msg)
+func (_e *MockWatcher_Expecter) Start(sendMsg interface{}) *MockWatcher_Start_Call {
+	return &MockWatcher_Start_Call{Call: _e.mock.On("Start", sendMsg)}
+}
+
+func (_c *MockWatcher_Start_Call) Run(run func(sendMsg func(tea.Msg))) *MockWatcher_Start_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 func(tea.Msg)
+		if args[0] != nil {
+			arg0 = args[0].(func(tea.Msg))
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockWatcher_Start_Call) Return() *MockWatcher_Start_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockWatcher_Start_Call) RunAndReturn(run func(sendMsg func(tea.Msg))) *MockWatcher_Start_Call {
+	_c.Run(run)
+	return _c
+}

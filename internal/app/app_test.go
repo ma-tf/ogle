@@ -2,7 +2,6 @@ package app_test
 
 import (
 	"context"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -55,7 +54,6 @@ func newModel(t *testing.T) (
 
 	ctx := context.Background()
 	cfg := config.Defaults()
-	logger := slog.Default()
 	th := theme.Default()
 
 	mockDocker := dockermocks.NewMockDocker(t)
@@ -64,7 +62,7 @@ func newModel(t *testing.T) (
 
 	mockWatcher.EXPECT().Close().Return(nil)
 
-	m, cleanup, err := app.New(ctx, cfg, "", "", logger, th, mockDocker, mockParser, mockWatcher)
+	m, cleanup, err := app.New(ctx, cfg, "", "", th, mockDocker, mockParser, mockWatcher)
 	require.NoError(t, err)
 
 	return m, cleanup, mockDocker, mockWatcher
@@ -280,7 +278,6 @@ func newModelWithConfig(t *testing.T, configPath string) (
 
 	ctx := context.Background()
 	cfg := config.Defaults()
-	logger := slog.Default()
 	th := theme.Default()
 
 	mockDocker := dockermocks.NewMockDocker(t)
@@ -289,7 +286,7 @@ func newModelWithConfig(t *testing.T, configPath string) (
 	mockWatcher.EXPECT().Close().Return(nil)
 
 	m, cleanup, err := app.New(
-		ctx, cfg, configPath, "", logger, th, mockDocker, mockParser, mockWatcher,
+		ctx, cfg, configPath, "", th, mockDocker, mockParser, mockWatcher,
 	)
 	require.NoError(t, err)
 
@@ -338,9 +335,8 @@ func TestUpdateSettingsApplied(t *testing.T) {
 			require.NotNil(t, result)
 			require.NotNil(t, cmd)
 
-			resultMsg := cmd()
-			changed, ok := resultMsg.(theme.Changed)
-			require.True(t, ok)
+			changed := extractThemeChanged(t, cmd())
+			require.NotNil(t, changed, "expected theme.Changed in batch")
 
 			if tc.expectThemeLoaded {
 				assert.NotSame(t, originalTheme, changed.Theme)
@@ -375,9 +371,8 @@ func TestUpdateSettingsAppliedConfigSaveFailure(t *testing.T) {
 	require.NotNil(t, result)
 	require.NotNil(t, cmd)
 
-	resultMsg := cmd()
-	changed, ok := resultMsg.(theme.Changed)
-	require.True(t, ok)
+	changed := extractThemeChanged(t, cmd())
+	require.NotNil(t, changed, "expected theme.Changed in batch")
 
 	assert.NotSame(t, originalTheme, changed.Theme)
 
@@ -731,4 +726,23 @@ func TestUpdateMouseClick(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Helper: extractThemeChanged unwraps a single message or batch message to
+// find the first theme.Changed. Returns nil if not found.
+func extractThemeChanged(t *testing.T, msg tea.Msg) *theme.Changed {
+	t.Helper()
+
+	switch m := msg.(type) {
+	case theme.Changed:
+		return &m
+	case tea.BatchMsg:
+		for _, entry := range m {
+			if tc := extractThemeChanged(t, entry()); tc != nil {
+				return tc
+			}
+		}
+	}
+
+	return nil
 }

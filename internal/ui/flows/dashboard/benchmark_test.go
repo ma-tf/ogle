@@ -2,7 +2,6 @@ package dashboard_test
 
 import (
 	"context"
-	"log/slog"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
@@ -47,7 +46,6 @@ func benchmarkModel(b *testing.B) dashboard.Model {
 				{Name: "db", Image: "postgres"},
 			},
 		},
-		slog.Default(),
 		theme.Default(),
 		config.Defaults(),
 		zone.New(),

@@ -136,13 +136,13 @@ var (
 				return fmt.Errorf("resolve watch directory: %w", err)
 			}
 
-			wtr, errWatch := watcher.New(watchDir, logger, projectFile, scanSvc)
+			wtr, errWatch := watcher.New(watchDir, projectFile, scanSvc)
 			if errWatch != nil {
 				return fmt.Errorf("create watcher: %w", errWatch)
 			}
 
 			model, cleanup, err := app.New(
-				ctx, cfg, configPath, projectFile, logger, th, dockerSvc, parseSvc, wtr,
+				ctx, cfg, configPath, projectFile, th, dockerSvc, parseSvc, wtr,
 			)
 			if err != nil {
 				return fmt.Errorf("app init: %w", err)
@@ -158,6 +158,8 @@ var (
 				model,
 				tea.WithContext(ctx),
 			)
+
+			wtr.Start(func(m tea.Msg) { program.Send(m) })
 
 			_, runErr := program.Run()
 			if runErr != nil {

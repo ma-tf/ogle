@@ -5,7 +5,6 @@ package watcher
 import (
 	"errors"
 	"fmt"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
@@ -28,6 +27,10 @@ var ErrCreateWatcher = errors.New("create watcher")
 type Watcher interface {
 	// Dir returns the directory being monitored.
 	Dir() string
+	// Start begins the background event loop. sendMsg routes non-domain
+	// messages (e.g. errors) into the Bubble Tea event loop. Must be
+	// called once after the tea.Program is created.
+	Start(sendMsg func(tea.Msg))
 	// Next returns a tea.Cmd that blocks until the next snapshot is ready.
 	// Re-call after each FileAvailabilityChanged to continue listening.
 	Next() tea.Cmd
@@ -81,32 +84,32 @@ type Service struct {
 	fw        FileWatcher
 	dir       string
 	scanner   scanner.Scanner
-	logger    *slog.Logger
+	sendMsg   func(tea.Msg)
 	extraFile string
 	events    chan tea.Msg
 	done      chan struct{}
 	once      sync.Once
+	startOnce sync.Once
 }
 
-// New creates a Watcher that monitors dir and starts the background event
-// loop. extraFile is an additional basename to track (e.g. a manually
-// specified project file). Pass "" to only track the scanner's known filenames.
-// On failure, nil is returned alongside the error.
-func New(dir string, logger *slog.Logger, extraFile string, sc scanner.Scanner) (Watcher, error) {
+// New creates a Watcher that monitors dir. extraFile is an additional
+// basename to track (e.g. a manually specified project file). Pass "" to
+// only track the scanner's known filenames. On failure, nil is returned
+// alongside the error. Call Start to begin the background event loop.
+func New(dir string, extraFile string, sc scanner.Scanner) (Watcher, error) {
 	fw, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, fmt.Errorf("%w: fsnotify: %w", ErrCreateWatcher, err)
 	}
 
-	return NewWithFileWatcher(dir, logger, extraFile, sc, &realFileWatcher{w: fw})
+	return NewWithFileWatcher(dir, extraFile, sc, &realFileWatcher{w: fw})
 }
 
 // NewWithFileWatcher creates a Watcher with the given FileWatcher
 // implementation. Intended for testing with a fake FileWatcher; production
-// code should use New instead.
+// code should use New instead. Call Start to begin the background event loop.
 func NewWithFileWatcher(
 	dir string,
-	logger *slog.Logger,
 	extraFile string,
 	sc scanner.Scanner,
 	fw FileWatcher,
@@ -121,7 +124,6 @@ func NewWithFileWatcher(
 		fw:      fw,
 		dir:     dir,
 		scanner: sc,
-		logger:  logger,
 		extraFile: func() string {
 			if extraFile == "" {
 				return ""
@@ -129,12 +131,12 @@ func NewWithFileWatcher(
 
 			return filepath.Base(extraFile)
 		}(),
-		events: make(chan tea.Msg, 1),
-		done:   make(chan struct{}),
-		once:   sync.Once{},
+		events:    make(chan tea.Msg, 1),
+		done:      make(chan struct{}),
+		once:      sync.Once{},
+		sendMsg:   nil,
+		startOnce: sync.Once{},
 	}
-
-	go w.run()
 
 	return w, nil
 }
@@ -152,6 +154,7 @@ func (w *Service) Close() error {
 	w.once.Do(func() {
 		close(w.done)
 		fwErr = w.fw.Close()
+		w.sendMsg = nil
 	})
 
 	if fwErr != nil {
@@ -201,6 +204,17 @@ func (w *Service) Snapshot() tea.Cmd {
 	}
 }
 
+// Start begins the background event loop. sendMsg routes non-domain
+// messages (e.g. fsnotify errors) into the Bubble Tea event loop. Must be
+// called once after the tea.Program is created. Safe to call multiple
+// times; subsequent calls are no-ops.
+func (w *Service) Start(sendMsg func(tea.Msg)) {
+	w.startOnce.Do(func() {
+		w.sendMsg = sendMsg
+		go w.run()
+	})
+}
+
 // run is the background goroutine that processes fsnotify events.
 func (w *Service) run() {
 	for {
@@ -227,7 +241,9 @@ func (w *Service) run() {
 				return
 			}
 
-			w.logger.Error("watcher: fsnotify error", "dir", w.dir, "err", err)
+			w.sendMsg(msgs.DisplayError{
+				Err: fmt.Sprintf("watcher: fsnotify error for %s: %v", w.dir, err),
+			})
 		}
 	}
 }
