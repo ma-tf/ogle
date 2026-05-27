@@ -27,7 +27,7 @@ const (
 	errorBodyLimit = 512
 )
 
-var errUnexpectedStatus = errors.New("logs: unexpected status")
+var ErrUnexpectedStatus = errors.New("logs: unexpected status")
 
 // ContainerName resolves the Docker container name for a service.
 // If containerNameOverride is non-empty it is returned verbatim; otherwise the
@@ -42,9 +42,21 @@ func ContainerName(project, service, containerNameOverride string) string {
 	return project + "-" + service + "-1"
 }
 
+// Option configures a LogStreamer.
+type Option func(*LogStreamer)
+
+// WithHTTPClient sets the HTTP client used for Docker API requests.
+// If not set, a default client dialing /var/run/docker.sock is used.
+func WithHTTPClient(client *http.Client) Option {
+	return func(s *LogStreamer) {
+		s.client = client
+	}
+}
+
 // LogStreamer streams Docker container logs over the Unix socket. Normal log
 // lines flow through lineCh; errors flow through ch.
 type LogStreamer struct {
+	client      *http.Client
 	cancel      context.CancelFunc
 	ch          chan tea.Msg
 	lineCh      chan string
@@ -54,8 +66,10 @@ type LogStreamer struct {
 }
 
 // New returns an idle LogStreamer. Call Start before calling Next.
-func New(serviceName string) *LogStreamer {
-	return &LogStreamer{
+// Pass WithHTTPClient to inject a custom HTTP client for testing.
+func New(serviceName string, opts ...Option) *LogStreamer {
+	s := &LogStreamer{
+		client:      nil,
 		cancel:      nil,
 		ch:          make(chan tea.Msg, channelCap),
 		lineCh:      make(chan string, lineBufferCap),
@@ -63,6 +77,12 @@ func New(serviceName string) *LogStreamer {
 		wg:          sync.WaitGroup{},
 		serviceName: serviceName,
 	}
+
+	for _, opt := range opts {
+		opt(s)
+	}
+
+	return s
 }
 
 // Start begins streaming logs for the named container. Close must be called
@@ -77,16 +97,20 @@ func New(serviceName string) *LogStreamer {
 func (s *LogStreamer) Start(appCtx context.Context, containerName string) {
 	ctx, cancel := context.WithCancel(appCtx)
 	s.cancel = cancel
+	s.done = make(chan struct{})
 
 	s.wg.Go(func() {
-		transport := &http.Transport{
-			DialContext: func(dialCtx context.Context, _, _ string) (net.Conn, error) {
-				d := net.Dialer{}
+		client := s.client
+		if client == nil {
+			transport := &http.Transport{
+				DialContext: func(dialCtx context.Context, _, _ string) (net.Conn, error) {
+					d := net.Dialer{}
 
-				return d.DialContext(dialCtx, "unix", socketPath)
-			},
+					return d.DialContext(dialCtx, "unix", socketPath)
+				},
+			}
+			client = &http.Client{Transport: transport}
 		}
-		client := &http.Client{Transport: transport}
 
 		req, err := http.NewRequestWithContext(
 			ctx,
@@ -137,7 +161,7 @@ func (s *LogStreamer) Start(appCtx context.Context, containerName string) {
 
 			select {
 			case s.ch <- msgs.LogStreamError{
-				Err:         fmt.Errorf("%w %d: %s", errUnexpectedStatus, resp.StatusCode, body),
+				Err:         fmt.Errorf("%w %d: %s", ErrUnexpectedStatus, resp.StatusCode, body),
 				ServiceName: s.serviceName,
 			}:
 			case <-ctx.Done():
@@ -248,6 +272,7 @@ func (s *LogStreamer) Close() {
 		s.done = make(chan struct{})
 
 		close(old)
+		close(s.done)
 
 		for {
 			select {
