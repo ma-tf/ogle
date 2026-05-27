@@ -121,15 +121,22 @@ on a channel), a plain struct with configurable fields is sufficient — no cons
 
 ```go
 type fakeCommander struct {
+    name       string
+    args       []string
+    cmd        *exec.Cmd
     fail       bool
     failStderr string
 }
 
-func (f *fakeCommander) CombinedOutput(ctx context.Context, name string, args ...string) ([]byte, error) {
+func (f *fakeCommander) CommandContext(_ context.Context, name string, arg ...string) *exec.Cmd {
+    f.name = name
+    f.args = append([]string{}, arg...)
     if f.fail {
-        return []byte(f.failStderr), exec.ErrNotFound
+        f.cmd = exec.Command("sh", "-c", "echo '"+f.failStderr+"' >&2 && exit 1")
+    } else {
+        f.cmd = exec.Command("true")
     }
-    return exec.CommandContext(ctx, name, args...).CombinedOutput()
+    return f.cmd
 }
 ```
 
@@ -255,9 +262,12 @@ is extracted into a package-level helper to keep table-driven test functions con
 ```go
 func runPsTestCase(t *testing.T, tc psCase) {
     t.Helper()
-    fc := &fakeCommander{commands: tc.commands}
+    composeFile := filepath.Join(t.TempDir(), "compose.yaml")
+    fc := &psTestCommander{cmd: tc.cmd}
     s := svcdocker.New(svcdocker.WithCommander(fc))
-    result, err := s.Ps()
+    teaCmd := s.Ps(context.Background(), composeFile, testProject)
+    require.NotNil(t, teaCmd)
+    msg := teaCmd()
     ...
 }
 ```
@@ -278,7 +288,8 @@ content (stderr, exit codes) into the error chain.
 
 ### Export surface
 
-- Model structs expose `New()`, `Init()`, `Update()`, `View()`. Exported getter methods (e.g. `Phase()`, `Dashboard()`, `Watching()`, `ShowingAbout()`, `Helpbar()` on `app.Model`) are acceptable for test assertions.
+- Model structs expose `New()`, `Init()`, `Update()`, `View()`. Exported getter methods (e.g. `Phase()`,
+  `Dashboard()`, `Watching()`, `ShowingAbout()`, `Helpbar()` on `app.Model`) are acceptable for test assertions.
 
 ### Package boundary
 

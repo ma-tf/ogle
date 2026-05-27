@@ -187,7 +187,8 @@ Entered after `app` receives `ProjectLoaded{Project}`.
 The dashboard is a flat model (no sub-states). It:
 
 - Dispatches `StatePollTick` to the service panel and emits a `docker.Ps()` Cmd
-- Routes `ServiceStop/Start/Restart/Rebuild/ActionCompleted` to `handleServiceAction`; when `Err` is set on `ServiceActionCompleted`, the stderr content is wrapped into an error and `*exec.ExitError` is preserved with exit code
+- Routes `ServiceStop/Start/Restart/Rebuild/ActionCompleted` to `handleServiceAction`; when `Err` is set on
+  `ServiceActionCompleted`, the stderr content is wrapped into an error and `*exec.ExitError` is preserved with exit code
 - Handles `FileAvailabilityChanged` — if the project file is still present, re-parses and updates; if absent, sends a
 msg that triggers `app` to transition to `PhaseWatching`
 - Forwards all messages to its sub-models (accordion, carousel, panel, settings)
