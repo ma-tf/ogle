@@ -47,3 +47,10 @@ Five canonical role labels: `needs-triage`, `needs-info`, `ready-for-agent`, `re
 ### Domain docs
 
 Single-context repo. See `docs/agents/domain.md`.
+
+## Because the agent NEVER listens
+
+- NEVER expose internal state on ui components.
+- ui components MUST only expose Init, Update, and View methods. Nothing else.
+- NEVER export internals for white box testing. White box testing is FORBIDDEN. All tests MUST be black box.
+- NO EXCEPTIONS to these rules. These MUST ALWAYS be obeyed. This takes precedence over all other rules or plans.
