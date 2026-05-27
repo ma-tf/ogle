@@ -430,6 +430,56 @@ func TestUpdate_ContainerStopsThenStarts(t *testing.T) {
 	})
 }
 
+func TestUpdate_ClearLogBuffer(t *testing.T) {
+	t.Parallel()
+
+	t.Run("ClearLogBuffer with matching name clears log pane lines", func(t *testing.T) {
+		t.Parallel()
+
+		ch := make(chan string, 10)
+		ch <- "visible line"
+
+		ch <- "another line"
+
+		s := logsmocks.NewMockStreamer(t)
+		s.EXPECT().Lines().Return((<-chan string)(ch))
+		s.EXPECT().Next().Return(func() tea.Msg { return nil })
+
+		m := servicehost.New(theme.Default(), svcDef, testProject, 120, 100, 100, s)
+		m, _ = m.Update(msgs.ServiceSelected{ServiceName: svcName})
+		m, _ = m.Update(msgs.LogLinesAvailable{})
+
+		assert.Contains(t, m.View().Content, "visible line")
+		assert.Contains(t, m.View().Content, "another line")
+
+		m, cmd := m.Update(msgs.ClearLogBuffer{ServiceName: svcName})
+		require.Nil(t, cmd)
+		assert.NotContains(t, m.View().Content, "visible line")
+		assert.NotContains(t, m.View().Content, "another line")
+	})
+
+	t.Run("ClearLogBuffer with non-matching name preserves log pane lines", func(t *testing.T) {
+		t.Parallel()
+
+		ch := make(chan string, 10)
+		ch <- "preserved line"
+
+		s := logsmocks.NewMockStreamer(t)
+		s.EXPECT().Lines().Return((<-chan string)(ch))
+		s.EXPECT().Next().Return(func() tea.Msg { return nil })
+
+		m := servicehost.New(theme.Default(), svcDef, testProject, 120, 100, 100, s)
+		m, _ = m.Update(msgs.ServiceSelected{ServiceName: svcName})
+		m, _ = m.Update(msgs.LogLinesAvailable{})
+
+		assert.Contains(t, m.View().Content, "preserved line")
+
+		m, cmd := m.Update(msgs.ClearLogBuffer{ServiceName: "other-service"})
+		require.Nil(t, cmd)
+		assert.Contains(t, m.View().Content, "preserved line")
+	})
+}
+
 func TestView(t *testing.T) {
 	t.Parallel()
 

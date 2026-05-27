@@ -131,6 +131,12 @@ func TestUpdate(t *testing.T) {
 			msg:         key('w'),
 			expectedMsg: msgs.ToggleLogWrap{},
 		},
+		// --- keyboard: clear log buffer ---
+		{
+			name:        "key c emits ClearLogBuffer for selected service",
+			msg:         key('c'),
+			expectedMsg: msgs.ClearLogBuffer{ServiceName: svcWeb},
+		},
 		// --- keyboard: restart with selected service ---
 		{
 			name:        "key r emits ServiceRestart for selected service",
@@ -166,6 +172,18 @@ func TestUpdate(t *testing.T) {
 				return m
 			},
 			msg: key('b'),
+		},
+		// --- keyboard: clear log without selected service ---
+		{
+			name: "key c with no selected service no-ops",
+			setup: func(
+				m dashboard.Model, _ *dockermocks.MockDocker, _ *parsermocks.MockParser,
+			) dashboard.Model {
+				m, _ = m.Update(msgs.ServiceSelected{ServiceName: ""})
+
+				return m
+			},
+			msg: key('c'),
 		},
 		// --- keyboard: scroll keys ---
 		{

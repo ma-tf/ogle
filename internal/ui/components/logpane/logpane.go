@@ -99,6 +99,14 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 		return m, nil
 
+	case msgs.ClearLogBuffer:
+		m.lines = nil
+		m.viewport.SetContent("")
+		m.viewport.GotoBottom()
+		m = m.drainLineCh()
+
+		return m, nil
+
 	case theme.Changed:
 		m.th = msg.Theme
 
@@ -120,6 +128,25 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	m.viewport, cmd = m.viewport.Update(msg)
 
 	return m, cmd
+}
+
+func (m Model) drainLineCh() Model {
+	if m.lineCh == nil {
+		return m
+	}
+
+	for {
+		select {
+		case _, ok := <-m.lineCh:
+			if !ok {
+				m.lineCh = nil
+
+				return m
+			}
+		default:
+			return m
+		}
+	}
 }
 
 func (m Model) drainLines() (Model, tea.Cmd) {

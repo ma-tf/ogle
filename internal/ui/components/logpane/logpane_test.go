@@ -13,7 +13,9 @@ import (
 	"github.com/ma-tf/ogle/internal/ui/theme"
 )
 
-//nolint:funlen
+const clearSvcName = "test"
+
+//nolint:funlen,maintidx // long test with many table-driven cases
 func TestUpdate(t *testing.T) {
 	t.Parallel()
 
@@ -160,6 +162,109 @@ func TestUpdate(t *testing.T) {
 				v := m.View().Content
 				assert.Contains(t, v, "line 19")
 				assert.NotContains(t, v, "line 0")
+			},
+		},
+
+		{
+			name: "ClearLogBuffer clears all lines from view",
+			setup: func() logpane.Model {
+				ch := make(chan string, 3)
+				ch <- "line a"
+
+				ch <- "line b"
+
+				ch <- "line c"
+
+				m := logpane.New(theme.Default(), 120, 100, 100, ch)
+				m, _ = m.Update(msgs.LogLinesAvailable{})
+
+				return m
+			},
+			msg:         msgs.ClearLogBuffer{ServiceName: clearSvcName},
+			expectedMsg: nil,
+			check: func(t *testing.T, m logpane.Model) {
+				t.Helper()
+
+				v := m.View().Content
+				assert.NotContains(t, v, "line a")
+				assert.NotContains(t, v, "line b")
+				assert.NotContains(t, v, "line c")
+			},
+		},
+
+		{
+			name: "ClearLogBuffer resets scroll to bottom so new lines appear",
+			setup: func() logpane.Model {
+				ch := make(chan string, 30)
+				for i := range 20 {
+					ch <- fmt.Sprintf("line %d", i)
+				}
+
+				m := logpane.New(theme.Default(), 120, 7, 100, ch)
+				m, _ = m.Update(msgs.LogLinesAvailable{})
+
+				// scroll up so bottom lines are not visible
+				m, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyUp})
+				m, _ = m.Update(msgs.ClearLogBuffer{ServiceName: clearSvcName})
+
+				for i := 20; i < 30; i++ {
+					ch <- fmt.Sprintf("new line %d", i)
+				}
+
+				return m
+			},
+			msg:         msgs.LogLinesAvailable{},
+			expectedMsg: nil,
+			check: func(t *testing.T, m logpane.Model) {
+				t.Helper()
+
+				v := m.View().Content
+				assert.Contains(t, v, "new line 29")
+				assert.NotContains(t, v, "line 0")
+				assert.NotContains(t, v, "line 19")
+			},
+		},
+
+		{
+			name: "ClearLogBuffer on empty buffer no-ops",
+			setup: func() logpane.Model {
+				return logpane.New(theme.Default(), 120, 100, 100, make(chan string, 1))
+			},
+			msg:         msgs.ClearLogBuffer{ServiceName: clearSvcName},
+			expectedMsg: nil,
+			check: func(t *testing.T, m logpane.Model) {
+				t.Helper()
+
+				assert.NotPanics(t, func() { m.View() })
+			},
+		},
+
+		{
+			name: "ClearLogBuffer discards buffered channel lines",
+			setup: func() logpane.Model {
+				ch := make(chan string, 10)
+				ch <- "stale line 1"
+
+				ch <- "stale line 2"
+
+				m := logpane.New(theme.Default(), 120, 100, 100, ch)
+				m, _ = m.Update(msgs.LogLinesAvailable{})
+
+				ch <- "stale line 3"
+
+				ch <- "stale line 4"
+
+				m, _ = m.Update(msgs.ClearLogBuffer{ServiceName: clearSvcName})
+
+				return m
+			},
+			msg:         msgs.LogLinesAvailable{},
+			expectedMsg: nil,
+			check: func(t *testing.T, m logpane.Model) {
+				t.Helper()
+
+				v := m.View().Content
+				assert.NotContains(t, v, "stale")
 			},
 		},
 

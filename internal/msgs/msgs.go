@@ -154,6 +154,11 @@ type (
 	}
 )
 
+// ClearLogBuffer clears all buffered log lines for the named service.
+type ClearLogBuffer struct {
+	ServiceName string
+}
+
 // ToggleLogWrap toggles soft wrapping of log lines in all log panes.
 type ToggleLogWrap struct{}
 

@@ -17,6 +17,7 @@ var (
 	keyScrollRight = key.NewBinding(key.WithKeys("right", "l"), key.WithHelp("→/l", "scroll right"))
 	keyRestart     = key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "restart"))
 	keyRebuild     = key.NewBinding(key.WithKeys("b"), key.WithHelp("b", "rebuild"))
+	keyClearLog    = key.NewBinding(key.WithKeys("c"), key.WithHelp("c", "clear log"))
 	keyHelp        = key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "toggle help"))
 )
 
@@ -28,6 +29,7 @@ func (k appKeymap) ShortHelp() []key.Binding {
 		carousel.KeyEnter,
 		keyRestart,
 		keyRebuild,
+		keyClearLog,
 		keyQuit,
 	}
 }
@@ -50,6 +52,7 @@ func (k appKeymap) FullHelp() [][]key.Binding {
 			carousel.KeyPgUp,
 			carousel.KeyPgDown,
 			keyToggleWrap,
+			keyClearLog,
 			keySettings,
 		},
 		{

@@ -217,6 +217,15 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 		return m, func() tea.Msg {
 			return msgs.ServiceRebuild{ServiceName: m.selectedName}
 		}
+
+	case key.Matches(msg, keyClearLog):
+		if m.selectedName == "" {
+			return m, nil
+		}
+
+		return m, func() tea.Msg {
+			return msgs.ClearLogBuffer{ServiceName: m.selectedName}
+		}
 	}
 
 	var cmd tea.Cmd
