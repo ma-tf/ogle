@@ -58,6 +58,9 @@ func (m Model) Init() tea.Cmd {
 	return nil
 }
 
+// ToggleMsg toggles the help bar between compact and full view.
+type ToggleMsg struct{}
+
 // Update satisfies tea.Model.
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -69,16 +72,11 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case theme.Changed:
 		m.th = msg.Theme
 		m.help = m.applyStyles()
+	case ToggleMsg:
+		m.help.ShowAll = !m.help.ShowAll
 	}
 
 	return m, nil
-}
-
-// Toggle flips between compact and full help view.
-func (m Model) Toggle() Model {
-	m.help.ShowAll = !m.help.ShowAll
-
-	return m
 }
 
 // ShowAll reports whether the help is in full (ShowAll=true) or compact mode.

@@ -128,7 +128,7 @@ func TestToggle(t *testing.T) {
 
 	m := helpbar.New(theme.Default())
 
-	m2 := m.Toggle()
+	m2, _ := m.Update(helpbar.ToggleMsg{})
 	assert.NotEqual(t, m, m2, "Toggle should return a different model")
 }
 
@@ -140,11 +140,11 @@ func TestToggle_BackAndForth(t *testing.T) {
 	m, _ = m.Update(tea.WindowSizeMsg{Width: 100})
 	first := m.View().Content
 
-	m = m.Toggle()
+	m, _ = m.Update(helpbar.ToggleMsg{})
 	expanded := m.View().Content
 	assert.NotEqual(t, first, expanded, "expanded help should differ from compact")
 
-	m = m.Toggle()
+	m, _ = m.Update(helpbar.ToggleMsg{})
 	collapsed := m.View().Content
 	assert.Equal(t, first, collapsed, "toggle twice should restore original")
 }
@@ -156,7 +156,7 @@ func TestToggle_ViewShowsFullHelp(t *testing.T) {
 	m, _ = m.Update(msgs.BindingsMsg{Keymap: fullKeymap{}})
 	m, _ = m.Update(tea.WindowSizeMsg{Width: 100})
 
-	m = m.Toggle()
+	m, _ = m.Update(helpbar.ToggleMsg{})
 	content := m.View().Content
 	assert.Contains(t, content, "quit")
 	assert.Contains(t, content, "help")

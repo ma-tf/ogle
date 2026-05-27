@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	key "charm.land/bubbles/v2/key"
@@ -706,6 +707,11 @@ func TestUpdateMouseClick(t *testing.T) {
 			}
 			// Call View to register brand zone in the zone manager.
 			_ = m.View()
+			// Yield to let the zone worker goroutine process the scan.
+			for range 50 {
+				runtime.Gosched()
+			}
+
 			result, cmd := m.Update(tc.msg)
 			require.NotNil(t, result)
 			appModel, ok := result.(app.Model)

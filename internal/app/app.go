@@ -318,9 +318,11 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 	case key.Matches(msg, keyProfile):
 		return m, profiling.DumpCmd()
 	case key.Matches(msg, keyHelpToggle):
-		m.helpbar = m.helpbar.Toggle()
+		var helpbarCmd tea.Cmd
 
-		return m, nil
+		m.helpbar, helpbarCmd = m.helpbar.Update(helpbar.ToggleMsg{})
+
+		return m, helpbarCmd
 	case key.Matches(msg, keyAbout):
 		m.showingAbout = true
 
