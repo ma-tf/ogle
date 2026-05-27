@@ -26,7 +26,8 @@ _Avoid_: Status, health (health check result is separate from container state �
 
 **Service Health**:
 The Docker health check result for a Service: `healthy`, `unhealthy`, `starting`, or `no healthcheck`. Distinct from
-Service State — a Service can be `running` but `unhealthy`.
+Service State — a Service can be `running` but `unhealthy`. Planned feature; not yet implemented: no health polling
+or display exists in the current codebase.
 _Avoid_: Health status, container health
 
 **State Age**:
@@ -40,7 +41,7 @@ from the Compose File while its container is still running.
 _Avoid_: Orphan container (redundant — all Orphans are containers by definition)
 
 **Orphan Toggle**:
-The user action that shows or hides Orphans in the service list on the Dashboard.
+The user action that shows or hides Orphans in the service list on the Dashboard. Planned feature; not yet implemented.
 _Avoid_: Show orphans, orphan visibility
 
 ### User interaction
@@ -58,8 +59,9 @@ _Avoid_: log pane, inspector pane
 
 **Service Inspector**:
 The view component within a Service Layer: a compact detail header (service name, image, ports, container hash, Service
-State, Service Health, State Age) above the Log Stream area. The detail header renders Compose File fields immediately;
-Docker fields show `—` until the daemon is connected.
+State, State Age) above the Log Stream area. The detail header renders Compose File fields immediately;
+Docker fields show `—` until the daemon is connected. (Future: will also show Service Health when health polling is
+implemented.)
 _Avoid_: Logs pane, detail pane, right pane
 
 **Selected Service**:
@@ -82,12 +84,13 @@ _Avoid_: Polling (unqualified), refresh, state sync
 
 **Service Filter**:
 The interactive mode that narrows the Service list to entries whose name matches a user-supplied substring. Activated
-with `/` on the Dashboard.
+with `/` on the Dashboard. Planned feature; not yet implemented.
 _Avoid_: Log filter (distinct feature), search
 
 **Label Toggle**:
 The user action that globally shows or hides the `ogle.*` label section in the Service Inspector. Hidden by default. The
-section is fixed-size, scrollable, and focusable as a sub-focus within the Service Inspector.
+section is fixed-size, scrollable, and focusable as a sub-focus within the Service Inspector. Planned feature; not yet
+implemented.
 _Avoid_: Metadata toggle, label visibility
 
 **Log Filter**:
@@ -182,9 +185,10 @@ ogle enters the **Watching** state.
 - The **Dashboard** displays all Services and the **Selected Service**'s **Log Stream** inside the **Service
 Inspector**. Each Service is backed by a **Service Layer** in the compositor.
 - The **Service Inspector** shows the Selected Service's detail header and Log Stream. Compose File fields are always
-visible; Docker fields (`Service State`, `Service Health`, `State Age`, container hash) require a live Docker
-connection.
-- **State Polling** periodically updates each Service's **Service State**, **Service Health**, and **State Age**.
+visible; Docker fields (`Service State`, `State Age`, container hash) require a live Docker
+connection. (Future: will also query `Service Health` when health polling is implemented.)
+- **State Polling** periodically updates each Service's **Service State** and **State Age**. (Future: will also
+  update **Service Health** when health polling is implemented.)
 - A user triggers a **Service Action** on a Service from the Dashboard; actions run asynchronously and do not block the
 UI. Service Actions are disabled when **Docker Unavailable**.
 - When the Compose File changes on disk, **Live Reload** updates the Project without leaving the Dashboard.
@@ -192,9 +196,9 @@ UI. Service Actions are disabled when **Docker Unavailable**.
 specific file to reappear.
 - When the Docker daemon becomes unreachable, the Dashboard enters **Docker Unavailable**: the **topbar**
 shows a retry countdown and Service States freeze at last-known values. ogle retries automatically.
-- An **Orphan** appears alongside Services in the Dashboard but is not part of the Project. The **Orphan Toggle**
-controls whether Orphans are shown.
-- The **Label Toggle** controls whether the `ogle.*` label section is shown in the **Service Inspector**.
+- An **Orphan** appears alongside Services in the Dashboard but is not part of the Project. (Future: the **Orphan Toggle**
+will control whether Orphans are shown.)
+- (Future: The **Label Toggle** will control whether the `ogle.*` label section is shown in the **Service Inspector**.)
 
 ## Example dialogue
 
@@ -220,8 +224,8 @@ everything resumes automatically."
 >
 > **Dev:** "Is the service 'healthy'?"
 > **Domain expert:** "That depends which concept you mean. **Service Health** is the Docker health check result —
-`healthy` or `unhealthy`. **Service State** is whether the container is `running`, `exited`, etc. A service can be
-`running` but `unhealthy`."
+> `healthy` or `unhealthy`. **Service State** is whether the container is `running`, `exited`, etc. A service can be
+> `running` but `unhealthy`. (Note: Service Health is defined here for domain clarity — not yet implemented.)"
 >
 > **Dev:** "How long has this service been up?"
 > **Domain expert:** "Check the **State Age** — it shows how long the service has been in its current state. If it's

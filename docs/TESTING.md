@@ -288,8 +288,7 @@ content (stderr, exit codes) into the error chain.
 
 ### Export surface
 
-- Model structs expose `New()`, `Init()`, `Update()`, `View()`. Exported getter methods (e.g. `Phase()`,
-  `Dashboard()`, `Watching()`, `ShowingAbout()`, `Helpbar()` on `app.Model`) are acceptable for test assertions.
+- Model structs expose `New()`, `Init()`, `Update()`, `View()`.
 
 ### Package boundary
 

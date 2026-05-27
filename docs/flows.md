@@ -87,9 +87,6 @@ PhaseDashboard  — dashboard flow is active (post-ProjectLoaded)
 PhaseWatching   — watching flow is active (disconnected, waiting for file to reappear)
 ```
 
-The `app.Model` exposes getter methods for test assertions without white-box access:
-`Phase()`, `Dashboard()`, `Watching()`, `ShowingAbout()`, `Helpbar()`.
-
 The About overlay is a cross-phase UI layer that can be opened from any phase via F1 or
 brand-click; it is rendered on top of the current view using the compositor. While the overlay
 is open, phase-specific input is blocked. Close keys: F1, esc, q (q does not quit when about

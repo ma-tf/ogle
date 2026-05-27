@@ -12,12 +12,12 @@ watcher lifecycle.
 
 ## Decision
 
-The root Bubble Tea model lives in `internal/app/app.go` as a proper package. `cmd/root.go` calls `app.Start()` and
+The root Bubble Tea model lives in `internal/app/app.go` as a proper package. `cmd/root.go` calls `app.New()` and
 remains thin — it validates flags and delegates immediately.
 
 ## Consequences
 
-- The `app` package has a clear, testable interface (`app.Start()`).
+- The `app` package has a clear, testable interface (`app.New()` returning `app.Model`).
 - `cmd/root.go` contains no Bubble Tea or TUI logic, only CLI flag parsing and pre-TUI validation (Explicit File mode
 hard exits happen here).
 - The root model owns the three top-level phases (`PhaseStartup`, `PhaseDashboard`, `PhaseWatching`) and dispatches `FileAvailabilityChanged`
