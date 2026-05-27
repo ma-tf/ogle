@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	key "charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -20,7 +21,6 @@ import (
 	dockermocks "github.com/ma-tf/ogle/internal/services/docker/mocks"
 	parsermocks "github.com/ma-tf/ogle/internal/services/parser/mocks"
 	watchermocks "github.com/ma-tf/ogle/internal/services/watcher/mocks"
-	"github.com/ma-tf/ogle/internal/ui/flows/dashboard"
 	"github.com/ma-tf/ogle/internal/ui/theme"
 )
 
@@ -32,6 +32,20 @@ const (
 	testComposePath = "/path/to/compose.yaml"
 	testImageName   = "nginx:latest"
 )
+
+type testKeymap struct{}
+
+func (testKeymap) ShortHelp() []key.Binding {
+	return []key.Binding{
+		key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
+	}
+}
+
+func (testKeymap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		{key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit"))},
+	}
+}
 
 func newModel(t *testing.T) (
 	app.Model, func() error, *dockermocks.MockDocker, *watchermocks.MockWatcher,
@@ -73,7 +87,7 @@ func TestInit(t *testing.T) {
 func TestUpdateQuit(t *testing.T) {
 	t.Parallel()
 
-	m, cleanup, _, _ := newModel(t) // only model and cleanup needed
+	m, cleanup, _, _ := newModel(t)
 	defer func() {
 		require.NoError(t, cleanup())
 	}()
@@ -115,13 +129,7 @@ func TestUpdateFileRemoved(t *testing.T) {
 	require.NotNil(t, result)
 	require.NotNil(t, cmd)
 
-	appModel, ok := result.(app.Model)
-	require.True(t, ok)
-
-	assert.Equal(t, app.PhaseWatching, appModel.Phase())
-
-	ww := appModel.Watching()
-	assert.Equal(t, "compose.yaml", ww.File)
+	assert.Contains(t, result.View().Content, "compose file unavailable — waiting")
 
 	resultMsg := cmd()
 	batch, ok := resultMsg.(tea.BatchMsg)
@@ -177,9 +185,7 @@ func TestUpdateFileAvailabilityChangedDuringDashboard(t *testing.T) {
 	require.NotNil(t, result)
 	require.NotNil(t, cmd)
 
-	appModel, ok := result.(app.Model)
-	require.True(t, ok)
-	assert.Equal(t, app.PhaseDashboard, appModel.Phase())
+	assert.Contains(t, result.View().Content, testServiceName)
 }
 
 func TestUpdateFileAvailabilityChangedDuringWatching(t *testing.T) {
@@ -204,9 +210,7 @@ func TestUpdateFileAvailabilityChangedDuringWatching(t *testing.T) {
 	require.NotNil(t, result)
 	require.NotNil(t, cmd)
 
-	appModel, ok := result.(app.Model)
-	require.True(t, ok)
-	assert.Equal(t, app.PhaseWatching, appModel.Phase())
+	assert.Contains(t, result.View().Content, "compose file unavailable")
 }
 
 func TestUpdateProjectLoaded(t *testing.T) {
@@ -217,7 +221,8 @@ func TestUpdateProjectLoaded(t *testing.T) {
 		require.NoError(t, cleanup())
 	}()
 
-	assert.Equal(t, app.PhaseStartup, m.Phase(), "should start in startup phase")
+	assert.Contains(t, m.View().Content, "scanning for compose files",
+		"should start in startup phase")
 
 	project := &domain.Project{
 		Name: testProjectName,
@@ -231,14 +236,8 @@ func TestUpdateProjectLoaded(t *testing.T) {
 	require.NotNil(t, result)
 	require.NotNil(t, cmd)
 
-	appModel, ok := result.(app.Model)
-	require.True(t, ok, "expected app.Model, got %T", result)
-
-	assert.Equal(t, app.PhaseDashboard, appModel.Phase(),
+	assert.Contains(t, result.View().Content, testServiceName,
 		"should transition to dashboard phase")
-
-	dash := appModel.Dashboard()
-	assert.NotEqual(t, dashboard.Model{}, dash, "dashboard sub-model should be created")
 
 	msg := cmd()
 	batch, ok := msg.(tea.BatchMsg)
@@ -263,7 +262,7 @@ func TestUpdateProjectLoaded(t *testing.T) {
 func TestView(t *testing.T) {
 	t.Parallel()
 
-	m, cleanup, _, _ := newModel(t) // only model and cleanup needed
+	m, cleanup, _, _ := newModel(t)
 	defer func() {
 		require.NoError(t, cleanup())
 	}()
@@ -637,16 +636,15 @@ func TestUpdateKeyPress(t *testing.T) {
 			}
 
 			if tc.checkShowAll {
-				before := m.Helpbar().ShowAll()
-				m, cmd := m.Update(tc.msg)
-				require.NotNil(t, m)
+				r, _ := m.Update(msgs.BindingsMsg{Keymap: testKeymap{}})
+				v1 := r.View().Content
+
+				r, cmd := m.Update(tc.msg)
+				require.NotNil(t, r)
 				require.Nil(t, cmd)
 
-				appModel, ok := m.(app.Model)
-				require.True(t, ok)
-
-				after := appModel.Helpbar().ShowAll()
-				assert.NotEqual(t, before, after)
+				v2 := r.View().Content
+				assert.NotEqual(t, v1, v2, "help bar content should change on toggle")
 
 				return
 			}
@@ -719,11 +717,11 @@ func TestUpdateMouseClick(t *testing.T) {
 			}
 
 			if tc.expectAboutOpen {
-				require.True(t, appModel.ShowingAbout())
+				require.Contains(t, appModel.View().Content, "github.com/ma-tf/ogle")
 			}
 
 			if tc.wantShowingAbout {
-				assert.True(t, appModel.ShowingAbout())
+				assert.Contains(t, appModel.View().Content, "github.com/ma-tf/ogle")
 			}
 		})
 	}

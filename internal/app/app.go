@@ -161,21 +161,6 @@ func New(
 	}, wtr.Close, nil
 }
 
-// Phase returns the current lifecycle phase.
-func (m Model) Phase() int { return m.phase }
-
-// Dashboard returns the dashboard sub-model.
-func (m Model) Dashboard() dashboard.Model { return m.dashboard }
-
-// Watching returns the watching sub-model.
-func (m Model) Watching() watching.Model { return m.watching }
-
-// ShowingAbout reports whether the about overlay is visible.
-func (m Model) ShowingAbout() bool { return m.showingAbout }
-
-// Helpbar returns the help bar sub-model.
-func (m Model) Helpbar() helpbar.Model { return m.helpbar }
-
 // Init fires the initial snapshot and starts the active phase.
 func (m Model) Init() tea.Cmd {
 	cmds := []tea.Cmd{m.watcher.Snapshot(), m.topbar.Init(), m.helpbar.Init()}
