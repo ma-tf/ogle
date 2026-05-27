@@ -20,6 +20,6 @@ remains thin — it validates flags and delegates immediately.
 - The `app` package has a clear, testable interface (`app.Start()`).
 - `cmd/root.go` contains no Bubble Tea or TUI logic, only CLI flag parsing and pre-TUI validation (Explicit File mode
 hard exits happen here).
-- The root model owns the three top-level phases (`phaseStartup`, `phaseDashboard`, `phaseWatching`) and dispatches `FileAvailabilityChanged`
+- The root model owns the three top-level phases (`PhaseStartup`, `PhaseDashboard`, `PhaseWatching`) and dispatches `FileAvailabilityChanged`
 to the correct active sub-model.
 - `internal/tui.go` is removed.

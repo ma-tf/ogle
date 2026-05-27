@@ -82,10 +82,13 @@ See `internal/services/watcher/service_test.go` for test coverage of each case.
 The app manages three phases plus a cross-phase About overlay:
 
 ```text
-phaseStartup    — startup flow is the active sub-model
-phaseDashboard  — dashboard flow is active (post-ProjectLoaded)
-phaseWatching   — watching flow is active (disconnected, waiting for file to reappear)
+PhaseStartup    — startup flow is the active sub-model
+PhaseDashboard  — dashboard flow is active (post-ProjectLoaded)
+PhaseWatching   — watching flow is active (disconnected, waiting for file to reappear)
 ```
+
+The `app.Model` exposes getter methods for test assertions without white-box access:
+`Phase()`, `Dashboard()`, `Watching()`, `ShowingAbout()`, `Helpbar()`.
 
 The About overlay is a cross-phase UI layer that can be opened from any phase via F1 or
 brand-click; it is rendered on top of the current view using the compositor. While the overlay
@@ -109,7 +112,7 @@ path directly.
 app.Update(msg)
 ├── msgs.ProjectLoaded           → transition startup → dashboard
 ├── msgs.FileAvailabilityChanged → re-subscribe watcher, dispatch to startup or dashboard
-├── msgs.FileRemoved             → transition to phaseWatching, emit TopbarContext
+├── msgs.FileRemoved             → transition to PhaseWatching, emit TopbarContext
 ├── msgs.DisplayError            → forward to statusbar (auto-clear after 3s)
 ├── msgs.DisplayStatus           → forward to statusbar (auto-clear after 3s)
 ├── msgs.ClearStatusMsg          → forward to statusbar
@@ -139,7 +142,7 @@ watching/fileselect components before a `FileSelected` msg reaches this flow.
 
 ## Watching View (`internal/ui/components/watching`)
 
-Rendered by the app's `phaseWatching` phase. Also used when the dashboard transitions to the Disconnected state (file
+Rendered by the app's `PhaseWatching` phase. Also used when the dashboard transitions to the Disconnected state (file
 disappeared at runtime).
 
 ```text
@@ -184,9 +187,9 @@ Entered after `app` receives `ProjectLoaded{Project}`.
 The dashboard is a flat model (no sub-states). It:
 
 - Dispatches `StatePollTick` to the service panel and emits a `docker.Ps()` Cmd
-- Routes `ServiceStop/Start/Restart/Rebuild/ActionCompleted` to `handleServiceAction`
+- Routes `ServiceStop/Start/Restart/Rebuild/ActionCompleted` to `handleServiceAction`; when `Err` is set on `ServiceActionCompleted`, the stderr content is wrapped into an error and `*exec.ExitError` is preserved with exit code
 - Handles `FileAvailabilityChanged` — if the project file is still present, re-parses and updates; if absent, sends a
-msg that triggers `app` to transition to `phaseWatching`
+msg that triggers `app` to transition to `PhaseWatching`
 - Forwards all messages to its sub-models (accordion, carousel, panel, settings)
 - Toggles settings overlay via `SettingsVisibilityChanged`
 
@@ -197,9 +200,9 @@ msg that triggers `app` to transition to `phaseWatching`
 | Message                          | Emitted by                      | Consumed by                                 |
 |----------------------------------|---------------------------------|---------------------------------------------|
 | `FileAvailabilityChanged{Files}` | `watcher`                       | `app` (dispatches to startup/dashboard)     |
-| `FileRemoved{File}`              | `dashboard`                     | `app` (triggers phaseWatching)              |
+| `FileRemoved{File}`              | `dashboard`                     | `app` (triggers PhaseWatching)              |
 | `FileSelected{Path}`             | fileselect                      | startup                                     |
-| `ProjectLoaded{Project}`         | startup / watching              | `app` (triggers phaseDashboard)               |
+| `ProjectLoaded{Project}`         | startup / watching              | `app` (triggers PhaseDashboard)               |
 | `DaemonConnected{}`              | `svcdocker.Connect`             | `topbar`, `servicepanel`, `servicehost`     |
 | `DaemonUnavailable{Err}`         | `svcdocker.Connect`             | `topbar` (starts retry countdown)           |
 | `DaemonTick{}`                   | `topbar.daemonTickCmd()` (1s `tea.Tick`)  | `topbar`                                    |
@@ -212,7 +215,7 @@ msg that triggers `app` to transition to `phaseWatching`
 | `ServiceStart`                   | `carousel/card` (user action)   | `dashboard` → `handleServiceAction`         |
 | `ServiceRestart`                 | `carousel/card` (user action)   | `dashboard` → `handleServiceAction`         |
 | `ServiceRebuild`                 | `carousel/card` (user action)   | `dashboard` → `handleServiceAction`         |
-| `ServiceActionCompleted`         | `svcdocker`                     | `dashboard`, `carousel/card`                |
+| `ServiceActionCompleted{Err}`    | `svcdocker`                     | `dashboard` (error: stderr wrapped into error, `ExitError` preserved with exit code), `carousel/card` |
 | `LogLinesAvailable{}`            | `LogStreamer`                   | `logpane` (via `servicehost`)               |
 | `LogStreamError{Err}`            | `LogStreamer`                   | `servicehost` (closes streamer, schedules retry via `tea.Tick(2s, LogStreamRetryTick{})`) |
 | `LogStreamContainerNotFound`     | `LogStreamer`                   | `servicehost` (closes streamer, schedules retry via `tea.Tick(2s, LogStreamRetryTick{})`) |
@@ -297,10 +300,10 @@ level before any phase sees the key press. The help bar is implemented in
 ## Runtime: file disappears (full trace)
 
 ```text
-dashboard (phaseDashboard)
+dashboard (PhaseDashboard)
 └── FileAvailabilityChanged{Files} where project file ∉ Files
-    └── app → phaseWatching
+    └── app → PhaseWatching
         └── watching view (disconnected mode)
             └── watches for the SAME filename to reappear
-                └── file reappears + valid → Parsing → phaseDashboard
+                └── file reappears + valid → Parsing → PhaseDashboard
 ```
