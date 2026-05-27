@@ -312,7 +312,7 @@ func runPsTestCase(t *testing.T, tc psCase) {
 	composeFile := filepath.Join(t.TempDir(), "compose.yaml")
 
 	fc := &psTestCommander{cmd: tc.cmd}
-	s := docker.New(docker.WithCommander(fc))
+	s := svcdocker.New(svcdocker.WithCommander(fc))
 
 	ctx := context.Background()
 	teaCmd := s.Ps(ctx, composeFile, testProject)
