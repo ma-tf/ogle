@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -29,7 +28,7 @@ type psLine struct {
 // message with the parsed runtime data for every service.
 func (s *Service) Ps(ctx context.Context, composeFile, projectName string) tea.Cmd {
 	return func() tea.Msg {
-		cmd := exec.CommandContext(
+		cmd := s.commander.CommandContext(
 			ctx,
 			"docker", "compose",
 			"-f", composeFile,
