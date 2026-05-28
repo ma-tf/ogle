@@ -83,6 +83,12 @@ type Theme struct {
 	AccordionHeaderBackground      color.Color // header bar background (brighter than AccordionBackground)
 	AccordionHeaderHoverBackground color.Color // header bar background when hovered
 	BodyBackground                 color.Color // background fill behind body content
+	AboutBackground                color.Color // about overlay background fill
+	AboutTitleColor                color.Color // about overlay title ("ogle") foreground
+	AboutArtColor                  color.Color // about overlay ASCII art foreground
+	AboutTextColor                 color.Color // about overlay version line foreground
+	AboutLinkColor                 color.Color // about overlay URL hyperlink foreground
+	AboutHintColor                 color.Color // about overlay close hint foreground
 }
 
 // UserThemeFile is the YAML schema for a user-defined theme override file.
@@ -129,6 +135,12 @@ type UserThemeFile struct {
 	AccordionHeaderBackgroundColor      string `yaml:"accordionHeaderBackgroundColor"`
 	AccordionHeaderHoverBackgroundColor string `yaml:"accordionHeaderHoverBackgroundColor"`
 	BodyBackgroundColor                 string `yaml:"bodyBackgroundColor"`
+	AboutBackgroundColor                string `yaml:"aboutBackgroundColor"`
+	AboutTitleColor                     string `yaml:"aboutTitleColor"`
+	AboutArtColor                       string `yaml:"aboutArtColor"`
+	AboutTextColor                      string `yaml:"aboutTextColor"`
+	AboutLinkColor                      string `yaml:"aboutLinkColor"`
+	AboutHintColor                      string `yaml:"aboutHintColor"`
 }
 
 // Load resolves a theme by name. configDir is the directory containing
@@ -273,6 +285,12 @@ func applyColorOverrides(result *Theme, f UserThemeFile) {
 		{field: f.AccordionHeaderBackgroundColor, dst: &result.AccordionHeaderBackground},
 		{field: f.AccordionHeaderHoverBackgroundColor, dst: &result.AccordionHeaderHoverBackground},
 		{field: f.BodyBackgroundColor, dst: &result.BodyBackground},
+		{field: f.AboutBackgroundColor, dst: &result.AboutBackground},
+		{field: f.AboutTitleColor, dst: &result.AboutTitleColor},
+		{field: f.AboutArtColor, dst: &result.AboutArtColor},
+		{field: f.AboutTextColor, dst: &result.AboutTextColor},
+		{field: f.AboutLinkColor, dst: &result.AboutLinkColor},
+		{field: f.AboutHintColor, dst: &result.AboutHintColor},
 	}
 
 	for _, o := range overrides {
