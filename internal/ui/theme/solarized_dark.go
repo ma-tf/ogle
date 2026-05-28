@@ -61,6 +61,8 @@ func SolarizedDark() *Theme {
 		TopbarStatusText:               solarizedWhite,
 		TopbarDisconnectedBackground:   solarizedRed,
 		TopbarRetryBackground:          solarizedOrange,
+		TopbarWrapBackground:           solarizedGreen,
+		TopbarTruncBackground:          solarizedYellow,
 		CarouselFocused:                solarizedBase1,
 		CarouselBlurred:                solarizedBase01,
 		CarouselBackground:             solarizedBase03,

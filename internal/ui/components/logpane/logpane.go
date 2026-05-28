@@ -22,14 +22,15 @@ const (
 
 // Model stores raw log text lines backed by a viewport for windowed rendering.
 type Model struct {
-	lines    []string
-	cap      int
-	viewport viewport.Model
-	lineCh   <-chan string
-	th       *theme.Theme
-	w        int
-	h        int
-	wrap     bool
+	lines        []string
+	cap          int
+	viewport     viewport.Model
+	lineCh       <-chan string
+	th           *theme.Theme
+	w            int
+	h            int
+	wrap         bool
+	prevOverflow bool
 }
 
 // New returns a Model reading from the given line channel. lineCap sets the
@@ -57,14 +58,15 @@ func New(th *theme.Theme, w, h, lineCap int, lineCh <-chan string) Model {
 	vp.MouseWheelEnabled = true
 
 	return Model{
-		lines:    nil,
-		cap:      lineCap,
-		viewport: vp,
-		lineCh:   lineCh,
-		th:       th,
-		w:        panW,
-		h:        usableH,
-		wrap:     false,
+		lines:        nil,
+		cap:          lineCap,
+		viewport:     vp,
+		lineCh:       lineCh,
+		th:           th,
+		w:            panW,
+		h:            usableH,
+		wrap:         false,
+		prevOverflow: false,
 	}
 }
 
@@ -97,13 +99,23 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.viewport.SetYOffset(realIdx)
 		}
 
-		return m, nil
+		overflow := false
+		if !m.wrap {
+			overflow = m.hasOverflow()
+		}
+
+		m.prevOverflow = overflow
+
+		return m, func() tea.Msg {
+			return msgs.LogWrapStatus{On: m.wrap, Overflow: overflow}
+		}
 
 	case msgs.ClearLogBuffer:
 		m.lines = nil
 		m.viewport.SetContent("")
 		m.viewport.GotoBottom()
 		m = m.drainLineCh()
+		m.prevOverflow = false
 
 		return m, nil
 
@@ -176,6 +188,17 @@ func (m Model) drainLines() (Model, tea.Cmd) {
 				m.viewport.GotoBottom()
 			}
 
+			if !m.wrap {
+				overflow := m.hasOverflow()
+				if overflow != m.prevOverflow {
+					m.prevOverflow = overflow
+
+					return m, func() tea.Msg {
+						return msgs.LogWrapStatus{On: m.wrap, Overflow: overflow}
+					}
+				}
+			}
+
 			return m, nil
 		}
 	}
@@ -207,6 +230,22 @@ func (m Model) realLineIndex(yOffset int) int {
 	}
 
 	return max(0, len(m.lines)-1)
+}
+
+// hasOverflow returns true when soft wrapping is OFF and any line exceeds the
+// viewport width, indicating content is truncated off-screen.
+func (m Model) hasOverflow() bool {
+	if m.wrap {
+		return false
+	}
+
+	for _, line := range m.lines {
+		if ansi.StringWidth(line) > m.viewport.Width() {
+			return true
+		}
+	}
+
+	return false
 }
 
 // View returns the viewport-rendered window of log lines with border, background,
