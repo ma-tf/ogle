@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	bubbleskey "charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	zone "github.com/lrstanley/bubblezone/v2"
 	"github.com/stretchr/testify/assert"
@@ -40,7 +41,7 @@ func TestShortHelp(t *testing.T) {
 	require.True(t, ok)
 
 	bindings := bindingsMsg.Keymap.ShortHelp()
-	require.Len(t, bindings, 4)
+	require.Len(t, bindings, 3)
 
 	assert.Equal(t, "↑/k", bindings[0].Help().Key)
 	assert.Equal(t, "up", bindings[0].Help().Desc)
@@ -48,8 +49,6 @@ func TestShortHelp(t *testing.T) {
 	assert.Equal(t, "down", bindings[1].Help().Desc)
 	assert.Equal(t, "enter", bindings[2].Help().Key)
 	assert.Equal(t, "select", bindings[2].Help().Desc)
-	assert.Equal(t, "q", bindings[3].Help().Key)
-	assert.Equal(t, "quit", bindings[3].Help().Desc)
 }
 
 func TestFullHelp(t *testing.T) {
@@ -64,7 +63,7 @@ func TestFullHelp(t *testing.T) {
 
 	bindings := bindingsMsg.Keymap.FullHelp()
 	require.Len(t, bindings, 1)
-	require.Len(t, bindings[0], 4)
+	require.Len(t, bindings[0], 6)
 
 	assert.Equal(t, "↑/k", bindings[0][0].Help().Key)
 	assert.Equal(t, "up", bindings[0][0].Help().Desc)
@@ -72,8 +71,53 @@ func TestFullHelp(t *testing.T) {
 	assert.Equal(t, "down", bindings[0][1].Help().Desc)
 	assert.Equal(t, "enter", bindings[0][2].Help().Key)
 	assert.Equal(t, "select", bindings[0][2].Help().Desc)
-	assert.Equal(t, "q", bindings[0][3].Help().Key)
-	assert.Equal(t, "quit", bindings[0][3].Help().Desc)
+	assert.Equal(t, "?", bindings[0][3].Help().Key)
+	assert.Equal(t, "toggle help", bindings[0][3].Help().Desc)
+	assert.Equal(t, "q", bindings[0][4].Help().Key)
+	assert.Equal(t, "quit", bindings[0][4].Help().Desc)
+	assert.Equal(t, "f1", bindings[0][5].Help().Key)
+	assert.Equal(t, "about", bindings[0][5].Help().Desc)
+}
+
+func TestKeymapPinnedHelp(t *testing.T) {
+	t.Parallel()
+
+	m, _ := newModel(t)
+	cmd := m.Init()
+	require.NotNil(t, cmd)
+
+	bindMsg, ok := cmd().(msgs.BindingsMsg)
+	require.True(t, ok)
+
+	km, ok := bindMsg.Keymap.(interface {
+		PinnedHelp() []bubbleskey.Binding
+	})
+	require.True(t, ok, "keymap should implement PinnedHelp")
+
+	pinned := km.PinnedHelp()
+	require.Len(t, pinned, 2)
+	assert.Equal(t, "?", pinned[0].Help().Key)
+	assert.Equal(t, "toggle help", pinned[0].Help().Desc)
+	assert.Equal(t, "q", pinned[1].Help().Key)
+	assert.Equal(t, "quit", pinned[1].Help().Desc)
+}
+
+func TestKeymapShortHelpExcludesQuit(t *testing.T) {
+	t.Parallel()
+
+	m, _ := newModel(t)
+	cmd := m.Init()
+	require.NotNil(t, cmd)
+
+	bindMsg, ok := cmd().(msgs.BindingsMsg)
+	require.True(t, ok)
+
+	bindings := bindMsg.Keymap.ShortHelp()
+	for _, b := range bindings {
+		assert.NotEqual(t, "q", b.Help().Key, "ShortHelp should not include quit")
+		assert.NotEqual(t, "?", b.Help().Key, "ShortHelp should not include help toggle")
+		assert.NotEqual(t, "f1", b.Help().Key, "ShortHelp should not include about")
+	}
 }
 
 func TestInit(t *testing.T) {
