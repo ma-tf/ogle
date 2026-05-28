@@ -175,9 +175,14 @@ func TestToggle(t *testing.T) {
 	t.Parallel()
 
 	m := helpbar.New(theme.Default())
+	m, _ = m.Update(msgs.BindingsMsg{Keymap: fullKeymap{}})
+	m, _ = m.Update(tea.WindowSizeMsg{Width: 100})
+	compact := m.View().Content
 
-	m2, _ := m.Update(helpbar.ToggleMsg{})
-	assert.NotEqual(t, m, m2, "Toggle should return a different model")
+	m, _ = m.Update(helpbar.ToggleMsg{})
+	expanded := m.View().Content
+
+	assert.NotEqual(t, compact, expanded, "toggle should change view from compact to expanded")
 }
 
 func TestToggle_BackAndForth(t *testing.T) {

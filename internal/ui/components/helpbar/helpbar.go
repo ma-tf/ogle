@@ -57,11 +57,6 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	return m, nil
 }
 
-// ShowAll reports whether the help is in full mode.
-func (m Model) ShowAll() bool {
-	return m.showAll
-}
-
 // View renders the help bar with the current keymap.
 func (m Model) View() tea.View {
 	if m.keymap == nil {
