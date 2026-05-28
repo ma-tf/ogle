@@ -265,6 +265,57 @@ func TestView(t *testing.T) {
 			},
 		},
 		{
+			name: "WRAP badge shown when LogWrapStatus matches active service",
+			setup: func(m topbar.Model) topbar.Model {
+				m, _ = m.Update(
+					msgs.TopbarContext{Phase: "dashboard", File: "compose.yaml", Service: "api"},
+				)
+				m, _ = m.Update(msgs.LogWrapStatus{On: true, Overflow: false, ServiceName: "api"})
+
+				return m
+			},
+			expectedResult: "WRAP",
+		},
+		{
+			name: "WRAP badge not shown when LogWrapStatus matches different service",
+			setup: func(m topbar.Model) topbar.Model {
+				m, _ = m.Update(
+					msgs.TopbarContext{Phase: "dashboard", File: "compose.yaml", Service: "api"},
+				)
+				m, _ = m.Update(msgs.LogWrapStatus{On: true, Overflow: false, ServiceName: "db"})
+
+				return m
+			},
+			assert: func(t *testing.T, m topbar.Model) {
+				t.Helper()
+
+				view := m.View().Content
+				assert.NotContains(t, view, "WRAP")
+				assert.NotContains(t, view, ">>")
+			},
+		},
+		{
+			name: "badge cleared when switching to a different service",
+			setup: func(m topbar.Model) topbar.Model {
+				m, _ = m.Update(
+					msgs.TopbarContext{Phase: "dashboard", File: "compose.yaml", Service: "api"},
+				)
+				m, _ = m.Update(msgs.LogWrapStatus{On: true, Overflow: false, ServiceName: "api"})
+				m, _ = m.Update(
+					msgs.TopbarContext{Phase: "dashboard", File: "compose.yaml", Service: "db"},
+				)
+
+				return m
+			},
+			assert: func(t *testing.T, m topbar.Model) {
+				t.Helper()
+
+				view := m.View().Content
+				assert.NotContains(t, view, "WRAP")
+				assert.NotContains(t, view, ">>")
+			},
+		},
+		{
 			name: "WRAP badge shown when wrapping is ON",
 			setup: func(m topbar.Model) topbar.Model {
 				m, _ = m.Update(msgs.TopbarContext{Phase: "dashboard", File: "compose.yaml"})
