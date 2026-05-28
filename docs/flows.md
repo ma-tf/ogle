@@ -188,7 +188,8 @@ The dashboard is a flat model (no sub-states). It:
   `ServiceActionCompleted`, the stderr content is wrapped into an error and `*exec.ExitError` is preserved with exit code
 - Handles `FileAvailabilityChanged` — if the project file is still present, re-parses and updates; if absent, sends a
 msg that triggers `app` to transition to `PhaseWatching`
-- Forwards all messages to its sub-models (accordion, carousel, panel, settings)
+- Forwards all messages to its sub-models (accordion, labelsaccordion, carousel, panel, settings)
+- On `ServiceSelected` when runtime data is available (non-nil), triggers `docker.Inspect` to fetch container labels for `labelsaccordion`
 - Handles `c` key — emits `ClearLogBuffer{ServiceName}` to clear the selected service's log buffer
 - Toggles settings overlay via `SettingsVisibilityChanged`
 
@@ -207,7 +208,7 @@ msg that triggers `app` to transition to `PhaseWatching`
 | `DaemonTick{}`                   | `topbar.daemonTickCmd()` (1s `tea.Tick`)  | `topbar`                                    |
 | `DaemonGraceExpired{}`           | `topbar.Init()` (10s grace one-shot)     | `topbar`                                    |
 | `DaemonPoll{}`                   | `topbar.pollDaemonCmd()` (2s `tea.Tick`) | `topbar` (triggers `docker.Connect`)        |
-| `TopbarContext{Phase,File}`      | `app` (phase transition)        | `topbar`                                    |
+| `TopbarContext{Phase,File,Service}` | `app` (phase transition)        | `topbar`                                    |
 | `StatePollTick`                  | `servicepanel` (timer)          | `dashboard` (triggers `docker.Ps`)          |
 | `ServicesPolled{Runtimes,Err}`   | `docker.Ps`                     | `dashboard`, `carousel`, `accordion`        |
 | `ServiceStop`                    | `carousel/card` (user action)   | `dashboard` → `handleServiceAction`         |
@@ -223,7 +224,9 @@ msg that triggers `app` to transition to `PhaseWatching`
 | `SettingsApplied{Theme,LBCap}`   | `settings`                      | `app` (loads theme, saves config, emits `theme.Changed`)                |
 | `SettingsVisibilityChanged`      | `settings`                      | `dashboard`                                 |
 | `AboutVisibilityChanged{Visible}`| `app`                           | `app` (tracks showingAbout flag)            |
+| `ContainerLabelsPolled{Labels,Err}` | `docker.Inspect`                | `dashboard`, `labelsaccordion`              |
 | `ToggleLogWrap`                  | `dashboard` (keybinding)        | `logpane`                                   |
+| `LogWrapStatus{On,Overflow,ServiceName}` | `logpane` (via `servicehost`) | `topbar` (filters by active service)        |
 | `ClearLogBuffer{ServiceName}`    | `dashboard` (keybinding `c`)    | `logpane` (clears lines, drains chan, resets viewport), `servicehost` (routes by name) |
 | `BindingsMsg{Keymap}`            | various flows                   | `helpbar`                                   |
 | `DisplayError{Err}`              | any component                   | `statusbar` (auto-clear after 3s)           |
@@ -264,6 +267,8 @@ Key behaviours:
 - Health polling: every 2 seconds when Connected; fires `DaemonPoll` which triggers `docker.Connect()` as a health check
 - The topbar renders the daemon status (Connecting/Connected/Unavailable) in the top-right of the application frame
 - The retry countdown is rendered by the topbar, not the Service Inspector
+- The topbar renders wrap/truncation badges between the context text and the daemon status: `WRAP` (orange background) when soft wrap is on, `>>` (red background) when the log viewport has overflow content. Only one badge is shown at a time; wrap takes precedence over overflow.
+- The topbar filters `LogWrapStatus` by `ServiceName`: only messages where `ServiceName` matches `selectedService` are applied. On service switch (`TopbarContext` with a different `Service`), the wrap and overflow badges are reset to off.
 
 ---
 

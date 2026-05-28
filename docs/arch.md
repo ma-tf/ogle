@@ -13,7 +13,7 @@ internal/
 ├── profiling/                        # profiling utilities
 ├── services/
 │   ├── docker/                       # Docker daemon connectivity (Commander, Option/WithCommander/WithHTTPClient, ParsePsOutput/ParseState)
-│   │   ├── service.go                # Docker interface + Service (connect, ps, stop, start, restart, rebuild)
+│   │   ├── service.go                # Docker interface + Service (connect, ps, inspect, stop, start, restart, rebuild)
 │   │   ├── actions.go                # Commander interface + realCommander, service action implementations
 │   │   ├── ps.go                     # Ps() using Commander, ParsePsOutput(), ParseState()
 │   │   ├── connection/               # connection state machine (Machine: Connecting/Connected/Unavailable)
@@ -32,7 +32,8 @@ internal/
 └── ui/
     ├── colorutil/                    # colour utilities (Brighten)
     ├── components/
-    │   ├── accordion/                # Service Inspector — detail header (name, image, ports, state, age)
+    │   ├── accordion/                # Service Inspector — service details accordion (name, image, ports, state, age)
+    │   ├── labelsaccordion/          # Service Inspector — ogle.* container labels accordion
     │   │   └── value/                # scroll-animated value display
     │   ├── carousel/                 # service card grid with pagination, focus, hover
     │   │   ├── carousel.go
@@ -75,7 +76,7 @@ internal/
 cmd → app
 app → ui/flows/startup, ui/flows/dashboard, ui/components/about, msgs, services/watcher, services/docker, config
 ui/flows/startup → services/parser, ui/components/fileselect, msgs, ui/theme
-ui/flows/dashboard → services/parser, services/docker/logs, ui/components/{accordion,carousel,servicepanel,settings}, msgs, ui/theme, config
+ui/flows/dashboard → services/parser, services/docker/logs, ui/components/{accordion,labelsaccordion,carousel,servicepanel,settings}, msgs, ui/theme, config
 ui/components/* → msgs, ui/theme, ui/colorutil
 ui/components/about → version
 ui/components/topbar → bubblezone, services/docker, services/docker/connection
