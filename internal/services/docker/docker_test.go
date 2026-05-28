@@ -198,17 +198,15 @@ func TestParsePsOutput(t *testing.T) {
 	}
 }
 
-func TestInspect(t *testing.T) {
+func TestInspectLabels(t *testing.T) {
 	t.Parallel()
 
 	type testCase struct {
 		name string
 		// arrange
-		handler     http.HandlerFunc
-		closeServer bool
+		handler http.HandlerFunc
 		// assert
 		expectedLabels map[string]string
-		expectedErr    bool
 	}
 
 	tt := []testCase{
@@ -217,8 +215,8 @@ func TestInspect(t *testing.T) {
 			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusOK)
 				_, _ = w.Write([]byte(`{
-					"Config": {
-						"Labels": {
+					"config": {
+						"labels": {
 							"ogle.foo": "bar",
 							"ogle.environment": "production",
 							"com.docker.compose.project": "myproject"
@@ -236,8 +234,8 @@ func TestInspect(t *testing.T) {
 			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusOK)
 				_, _ = w.Write([]byte(`{
-					"Config": {
-						"Labels": {
+					"config": {
+						"labels": {
 							"com.docker.compose.project": "myproject"
 						}
 					}
@@ -249,7 +247,7 @@ func TestInspect(t *testing.T) {
 			name: "empty labels returns nil",
 			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte(`{"Config": {"Labels": {}}}`))
+				_, _ = w.Write([]byte(`{"config": {"labels": {}}}`))
 			},
 			expectedLabels: nil,
 		},
@@ -257,24 +255,59 @@ func TestInspect(t *testing.T) {
 			name: "nil labels returns nil",
 			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte(`{"Config": {}}`))
+				_, _ = w.Write([]byte(`{"config": {}}`))
 			},
 			expectedLabels: nil,
 		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			srv := httptest.NewServer(tc.handler)
+			t.Cleanup(srv.Close)
+
+			client := testServerClient(srv)
+			svc := svcdocker.New(svcdocker.WithHTTPClient(client))
+			cmd := svc.Inspect(context.Background(), "abc123")
+			require.NotNil(t, cmd)
+
+			msg := cmd()
+			require.NotNil(t, msg)
+
+			labelsMsg, ok := msg.(msgs.ContainerLabelsPolled)
+			require.True(t, ok, "expected ContainerLabelsPolled, got %T", msg)
+
+			require.NoError(t, labelsMsg.Err)
+			assert.Equal(t, tc.expectedLabels, labelsMsg.Labels)
+		})
+	}
+}
+
+func TestInspectErrors(t *testing.T) {
+	t.Parallel()
+
+	type testCase struct {
+		name string
+		// arrange
+		handler     http.HandlerFunc
+		closeServer bool
+	}
+
+	tt := []testCase{
 		{
 			name: "non-200 status returns error",
 			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusNotFound)
 			},
-			expectedErr: true,
 		},
 		{
 			name: "dial error returns error",
 			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusOK)
 			},
-			closeServer:  true,
-			expectedErr:  true,
+			closeServer: true,
 		},
 		{
 			name: "malformed json returns error",
@@ -282,7 +315,6 @@ func TestInspect(t *testing.T) {
 				w.WriteHeader(http.StatusOK)
 				_, _ = w.Write([]byte(`{invalid}`))
 			},
-			expectedErr: true,
 		},
 	}
 
@@ -309,13 +341,8 @@ func TestInspect(t *testing.T) {
 			labelsMsg, ok := msg.(msgs.ContainerLabelsPolled)
 			require.True(t, ok, "expected ContainerLabelsPolled, got %T", msg)
 
-			if tc.expectedErr {
-				require.Error(t, labelsMsg.Err)
-				require.Nil(t, labelsMsg.Labels)
-			} else {
-				require.NoError(t, labelsMsg.Err)
-				assert.Equal(t, tc.expectedLabels, labelsMsg.Labels)
-			}
+			require.Error(t, labelsMsg.Err)
+			require.Nil(t, labelsMsg.Labels)
 		})
 	}
 }

@@ -93,7 +93,7 @@ func TestInit(t *testing.T) {
 // TestUpdate
 // ---------------------------------------------------------------------------
 
-//nolint:funlen,maintidx // long test with many table-driven cases
+//nolint:funlen,maintidx,gocognit // long test with many table-driven cases
 func TestUpdate(t *testing.T) {
 	t.Parallel()
 

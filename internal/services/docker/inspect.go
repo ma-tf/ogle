@@ -21,8 +21,8 @@ const (
 // GET /containers/{id}/json response.
 type inspectResponse struct {
 	Config struct {
-		Labels map[string]string `json:"Labels"`
-	} `json:"Config"`
+		Labels map[string]string `json:"labels"`
+	} `json:"config"`
 }
 
 // Inspect returns a Cmd that fetches container metadata via the Docker Engine
@@ -30,6 +30,7 @@ type inspectResponse struct {
 func (s *Service) Inspect(ctx context.Context, containerID string) tea.Cmd {
 	return func() tea.Msg {
 		path := fmt.Sprintf(inspectPath, containerID)
+
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, path, nil)
 		if err != nil {
 			return msgs.ContainerLabelsPolled{
@@ -50,15 +51,15 @@ func (s *Service) Inspect(ctx context.Context, containerID string) tea.Cmd {
 		if resp.StatusCode != http.StatusOK {
 			return msgs.ContainerLabelsPolled{
 				Labels: nil,
-				Err:    fmt.Errorf("inspect container: unexpected status %d", resp.StatusCode),
+				Err:    fmt.Errorf("%w: %d", ErrUnexpectedInspectStatus, resp.StatusCode),
 			}
 		}
 
 		var data inspectResponse
-		if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		if decErr := json.NewDecoder(resp.Body).Decode(&data); decErr != nil {
 			return msgs.ContainerLabelsPolled{
 				Labels: nil,
-				Err:    fmt.Errorf("decode inspect response: %w", err),
+				Err:    fmt.Errorf("decode inspect response: %w", decErr),
 			}
 		}
 
@@ -75,6 +76,7 @@ func filterOgleLabels(all map[string]string) map[string]string {
 	}
 
 	result := make(map[string]string)
+
 	for k, v := range all {
 		if strings.HasPrefix(k, ogleLabelPrefix) {
 			result[k] = v

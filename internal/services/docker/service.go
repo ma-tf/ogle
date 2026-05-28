@@ -89,7 +89,10 @@ func New(opts ...Option) *Service {
 
 var _ Docker = (*Service)(nil)
 
-var ErrUnexpectedPingStatus = errors.New("docker ping returned unexpected status")
+var (
+	ErrUnexpectedPingStatus    = errors.New("docker ping returned unexpected status")
+	ErrUnexpectedInspectStatus = errors.New("inspect container returned unexpected status")
+)
 
 const (
 	socketPath     = "/var/run/docker.sock"
