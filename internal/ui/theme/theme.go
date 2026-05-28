@@ -69,6 +69,8 @@ type Theme struct {
 	TopbarStatusText               color.Color // daemon status text foreground
 	TopbarDisconnectedBackground   color.Color // red — "DISCONNECTED" badge
 	TopbarRetryBackground          color.Color // orange — "RECONNECTING" badge
+	TopbarWrapBackground           color.Color // green — "WRAP" badge background
+	TopbarTruncBackground          color.Color // amber — ">>" truncation badge background
 	LogPaneBackground              color.Color // log pane background fill
 	CarouselFocused                color.Color
 	CarouselBlurred                color.Color
@@ -83,6 +85,12 @@ type Theme struct {
 	AccordionHeaderBackground      color.Color // header bar background (brighter than AccordionBackground)
 	AccordionHeaderHoverBackground color.Color // header bar background when hovered
 	BodyBackground                 color.Color // background fill behind body content
+	AboutBackground                color.Color // about overlay background fill
+	AboutTitleColor                color.Color // about overlay title ("ogle") foreground
+	AboutArtColor                  color.Color // about overlay ASCII art foreground
+	AboutTextColor                 color.Color // about overlay version line foreground
+	AboutLinkColor                 color.Color // about overlay URL hyperlink foreground
+	AboutHintColor                 color.Color // about overlay close hint foreground
 }
 
 // UserThemeFile is the YAML schema for a user-defined theme override file.
@@ -115,6 +123,8 @@ type UserThemeFile struct {
 	TopbarStatusTextColor               string `yaml:"topbarStatusTextColor"`
 	TopbarDisconnectedBackgroundColor   string `yaml:"topbarDisconnectedBackgroundColor"`
 	TopbarRetryBackgroundColor          string `yaml:"topbarRetryBackgroundColor"`
+	TopbarWrapBackgroundColor           string `yaml:"topbarWrapBackgroundColor"`
+	TopbarTruncBackgroundColor          string `yaml:"topbarTruncBackgroundColor"`
 	CarouselFocusedColor                string `yaml:"carouselFocusedColor"`
 	CarouselBlurredColor                string `yaml:"carouselBlurredColor"`
 	CarouselBackgroundColor             string `yaml:"carouselBackgroundColor"`
@@ -129,6 +139,12 @@ type UserThemeFile struct {
 	AccordionHeaderBackgroundColor      string `yaml:"accordionHeaderBackgroundColor"`
 	AccordionHeaderHoverBackgroundColor string `yaml:"accordionHeaderHoverBackgroundColor"`
 	BodyBackgroundColor                 string `yaml:"bodyBackgroundColor"`
+	AboutBackgroundColor                string `yaml:"aboutBackgroundColor"`
+	AboutTitleColor                     string `yaml:"aboutTitleColor"`
+	AboutArtColor                       string `yaml:"aboutArtColor"`
+	AboutTextColor                      string `yaml:"aboutTextColor"`
+	AboutLinkColor                      string `yaml:"aboutLinkColor"`
+	AboutHintColor                      string `yaml:"aboutHintColor"`
 }
 
 // Load resolves a theme by name. configDir is the directory containing
@@ -259,6 +275,8 @@ func applyColorOverrides(result *Theme, f UserThemeFile) {
 		{field: f.TopbarStatusTextColor, dst: &result.TopbarStatusText},
 		{field: f.TopbarDisconnectedBackgroundColor, dst: &result.TopbarDisconnectedBackground},
 		{field: f.TopbarRetryBackgroundColor, dst: &result.TopbarRetryBackground},
+		{field: f.TopbarWrapBackgroundColor, dst: &result.TopbarWrapBackground},
+		{field: f.TopbarTruncBackgroundColor, dst: &result.TopbarTruncBackground},
 		{field: f.CarouselFocusedColor, dst: &result.CarouselFocused},
 		{field: f.CarouselBlurredColor, dst: &result.CarouselBlurred},
 		{field: f.CarouselBackgroundColor, dst: &result.CarouselBackground},
@@ -273,6 +291,12 @@ func applyColorOverrides(result *Theme, f UserThemeFile) {
 		{field: f.AccordionHeaderBackgroundColor, dst: &result.AccordionHeaderBackground},
 		{field: f.AccordionHeaderHoverBackgroundColor, dst: &result.AccordionHeaderHoverBackground},
 		{field: f.BodyBackgroundColor, dst: &result.BodyBackground},
+		{field: f.AboutBackgroundColor, dst: &result.AboutBackground},
+		{field: f.AboutTitleColor, dst: &result.AboutTitleColor},
+		{field: f.AboutArtColor, dst: &result.AboutArtColor},
+		{field: f.AboutTextColor, dst: &result.AboutTextColor},
+		{field: f.AboutLinkColor, dst: &result.AboutLinkColor},
+		{field: f.AboutHintColor, dst: &result.AboutHintColor},
 	}
 
 	for _, o := range overrides {

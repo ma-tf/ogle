@@ -90,10 +90,19 @@ type (
 )
 
 // TopbarContext is delivered by the app on phase transitions. The topbar
-// component updates its displayed context text accordingly.
+// component updates its displayed context text accordingly. When Service is
+// non-empty the topbar appends " → <service>" to the context text.
 type TopbarContext struct {
-	Phase string
-	File  string
+	Phase   string
+	File    string
+	Service string
+}
+
+// LogWrapStatus is emitted by logpane when the soft wrap state or overflow
+// status changes. The topbar renders a badge reflecting the current state.
+type LogWrapStatus struct {
+	On       bool
+	Overflow bool
 }
 
 // BindingsMsg delivers a unified keymap to the helpbar component.

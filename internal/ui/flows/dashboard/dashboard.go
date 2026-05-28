@@ -6,6 +6,7 @@ package dashboard
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"slices"
 
 	"charm.land/bubbles/v2/key"
@@ -102,7 +103,7 @@ func (m Model) Init() tea.Cmd {
 
 // Update handles dashboard-level messages.
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
-	var carouselCmd, panCmd, settingsCmd, accCmd tea.Cmd
+	var carouselCmd, panCmd, settingsCmd, accCmd, topbarCtxCmd tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -155,6 +156,13 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	case msgs.ServiceSelected:
 		m.selectedName = msg.ServiceName
+		topbarCtxCmd = func() tea.Msg {
+			return msgs.TopbarContext{
+				Phase:   "dashboard",
+				File:    filepath.Base(m.project.File),
+				Service: msg.ServiceName,
+			}
+		}
 
 	case msgs.ServicesPolled:
 		if msg.Err == nil {
@@ -170,7 +178,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.settings, settingsCmd = m.settings.Update(msg)
 	}
 
-	return m, tea.Batch(accCmd, carouselCmd, panCmd, settingsCmd)
+	return m, tea.Batch(accCmd, carouselCmd, panCmd, settingsCmd, topbarCtxCmd)
 }
 
 func (m Model) handleKeyPress(msg tea.KeyPressMsg) (Model, tea.Cmd) {

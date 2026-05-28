@@ -164,7 +164,7 @@ func (m Model) Init() tea.Cmd {
 	case PhaseDashboard:
 		cmds = append(cmds, m.dashboard.Init())
 		cmds = append(cmds, func() tea.Msg {
-			return msgs.TopbarContext{Phase: "dashboard", File: m.projectFile}
+			return msgs.TopbarContext{Phase: "dashboard", File: m.projectFile, Service: ""}
 		})
 	case PhaseStartup:
 		cmds = append(cmds, m.startup.Init())
@@ -230,7 +230,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.phase = PhaseWatching
 
 		return m, tea.Batch(
-			func() tea.Msg { return msgs.TopbarContext{Phase: "watching", File: ""} },
+			func() tea.Msg { return msgs.TopbarContext{Phase: "watching", File: "", Service: ""} },
 			func() tea.Msg { return msgs.BindingsMsg{Keymap: watchingKeymap{}} },
 		)
 
@@ -349,7 +349,11 @@ func (m Model) handleProjectLoaded(msg msgs.ProjectLoaded) (Model, tea.Cmd) {
 	return m, tea.Batch(
 		m.dashboard.Init(),
 		func() tea.Msg {
-			return msgs.TopbarContext{Phase: "dashboard", File: filepath.Base(msg.Project.File)}
+			return msgs.TopbarContext{
+				Phase:   "dashboard",
+				File:    filepath.Base(msg.Project.File),
+				Service: "",
+			}
 		},
 	)
 }
