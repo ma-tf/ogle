@@ -5,9 +5,16 @@ project_name: ogle
 before:
   hooks:
     - go mod tidy
+    - go generate ./...
+    - go run internal/tools/docgen/main.go --out ./docs --format markdown
+    - go run internal/tools/docgen/main.go --out ./man --format man
 
 builds:
-  - main: .
+  - id: ogle
+    main: .
+    binary: ogle
+    env:
+      - CGO_ENABLED=0
     ldflags:
       - -s -w
       - -X github.com/ma-tf/ogle/internal/version.Version={{ .Version }}
@@ -25,28 +32,83 @@ builds:
         goarch: arm64
 
 archives:
-  - formats:
-      - tar.gz
+  - id: default
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- .Arch }}
     format_overrides:
       - goos: windows
-        formats:
-          - zip
+        formats: [zip]
+    files:
+      - COPYING
+      - README.md
+      - docs/**/*
+      - man/*.1
 
 checksum:
-  name_template: checksums.txt
+  name_template: "checksums.txt"
+  algorithm: sha256
 
 changelog:
   sort: asc
   use: github
+  format: "{{.SHA}}: {{.Message}}"
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "^ci:"
+      - "^style:"
+      - "typo"
   groups:
-    - title: Features
-      regexp: ^.*?feat(\([^)]*\))?!?:.*$
+    - title: "New Features"
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
       order: 0
-    - title: Bug fixes
-      regexp: ^.*?fix(\([^)]*\))?!?:.*$
+    - title: "Bug Fixes"
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
       order: 1
-    - title: Documentation
-      regexp: ^.*?docs(\([^)]*\))?!?:.*$
+    - title: "Performance Improvements"
+      regexp: '^.*?perf(\([[:word:]]+\))??!?:.+$'
       order: 2
-    - title: Other
-      order: 3
+    - title: "Other Changes"
+      order: 999
+
+release:
+  github:
+    owner: ma-tf
+    name: ogle
+  prerelease: auto
+  mode: append
+  footer: |
+    ## Installation
+
+    ### Go install
+    ```bash
+    go install github.com/ma-tf/ogle@{{ .Tag }}
+    ```
+
+    ### Binary Download
+    Download the appropriate binary for your system from the assets below.
+
+    ### Linux/macOS
+    ```bash
+    # Extract the archive
+    tar -xzf ogle_*_linux_amd64.tar.gz
+
+    # Move to a directory in your PATH
+    sudo mv ogle /usr/local/bin/
+
+    # Optional: Install man pages
+    sudo cp man/*.1 /usr/local/share/man/man1/
+    sudo mandb
+    ```
+
+    ### Windows
+    Extract the zip file and add `ogle.exe` to your PATH.
+
+    ---
+
+    **Full Changelog**: https://github.com/ma-tf/ogle/compare/{{ .PreviousTag }}...{{ .Tag }}
