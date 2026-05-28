@@ -267,7 +267,7 @@ Key behaviours:
 - Health polling: every 2 seconds when Connected; fires `DaemonPoll` which triggers `docker.Connect()` as a health check
 - The topbar renders the daemon status (Connecting/Connected/Unavailable) in the top-right of the application frame
 - The retry countdown is rendered by the topbar, not the Service Inspector
-- The topbar renders wrap/truncation badges between the context text and the daemon status: `WRAP` (orange background) when soft wrap is on, `>>` (red background) when the log viewport has overflow content. Only one badge is shown at a time; wrap takes precedence over overflow.
+- The topbar renders wrap/truncation badges between the context text and the daemon status: `WRAP` (green background) when soft wrap is on, `>>` (amber background) when the log viewport has overflow content. Only one badge is shown at a time; wrap takes precedence over overflow.
 - The topbar filters `LogWrapStatus` by `ServiceName`: only messages where `ServiceName` matches `selectedService` are applied. On service switch (`TopbarContext` with a different `Service`), the wrap and overflow badges are reset to off.
 
 ---
