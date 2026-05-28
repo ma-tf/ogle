@@ -99,10 +99,12 @@ type TopbarContext struct {
 }
 
 // LogWrapStatus is emitted by logpane when the soft wrap state or overflow
-// status changes. The topbar renders a badge reflecting the current state.
+// status changes. ServiceName is injected by the service host so the topbar
+// can filter by active service and avoid stale badges.
 type LogWrapStatus struct {
-	On       bool
-	Overflow bool
+	On          bool
+	Overflow    bool
+	ServiceName string
 }
 
 // BindingsMsg delivers a unified keymap to the helpbar component.

@@ -107,7 +107,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.prevOverflow = overflow
 
 		return m, func() tea.Msg {
-			return msgs.LogWrapStatus{On: m.wrap, Overflow: overflow}
+			return msgs.LogWrapStatus{On: m.wrap, Overflow: overflow, ServiceName: ""}
 		}
 
 	case msgs.ClearLogBuffer:
@@ -194,7 +194,7 @@ func (m Model) drainLines() (Model, tea.Cmd) {
 					m.prevOverflow = overflow
 
 					return m, func() tea.Msg {
-						return msgs.LogWrapStatus{On: m.wrap, Overflow: overflow}
+						return msgs.LogWrapStatus{On: m.wrap, Overflow: overflow, ServiceName: ""}
 					}
 				}
 			}

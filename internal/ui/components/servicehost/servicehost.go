@@ -128,10 +128,31 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	m.logPane, logCmd = m.logPane.Update(msg)
 	if logCmd != nil {
+		logCmd = wrapLogWrapStatus(logCmd, m.def.Name)
 		cmds = append(cmds, logCmd)
 	}
 
 	return m, tea.Batch(cmds...)
+}
+
+// wrapLogWrapStatus intercepts a LogWrapStatus command and injects the given
+// service name so the topbar can filter by active service.
+func wrapLogWrapStatus(cmd tea.Cmd, name string) tea.Cmd {
+	return func() tea.Msg {
+		msg := cmd()
+		if msg == nil {
+			return nil
+		}
+
+		lws, ok := msg.(msgs.LogWrapStatus)
+		if !ok {
+			return msg
+		}
+
+		lws.ServiceName = name
+
+		return lws
+	}
 }
 
 func (m Model) retryDelay() time.Duration {

@@ -111,11 +111,18 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 
 		m.projectFile = msg.File
+		if msg.Service != m.selectedService {
+			m.wrapOn = false
+			m.truncated = false
+		}
+
 		m.selectedService = msg.Service
 
 	case msgs.LogWrapStatus:
-		m.wrapOn = msg.On
-		m.truncated = msg.Overflow
+		if msg.ServiceName == m.selectedService {
+			m.wrapOn = msg.On
+			m.truncated = msg.Overflow
+		}
 
 	case theme.Changed:
 		m.th = msg.Theme

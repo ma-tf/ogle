@@ -309,6 +309,31 @@ func TestUpdate_LogStream(t *testing.T) {
 			},
 			expectCmd: false,
 		},
+
+		{
+			name: "ToggleLogWrap emits LogWrapStatus with service name injected",
+			setup: func(t *testing.T) servicehost.Model {
+				t.Helper()
+				m, _ := newModel(t)
+
+				return m
+			},
+			msg:         msgs.ToggleLogWrap{},
+			expectedMsg: msgs.LogWrapStatus{On: true, Overflow: false, ServiceName: svcName},
+		},
+
+		{
+			name: "ToggleLogWrap off emits LogWrapStatus with service name",
+			setup: func(t *testing.T) servicehost.Model {
+				t.Helper()
+				m, _ := newModel(t)
+				m, _ = m.Update(msgs.ToggleLogWrap{})
+
+				return m
+			},
+			msg:         msgs.ToggleLogWrap{},
+			expectedMsg: msgs.LogWrapStatus{On: false, Overflow: false, ServiceName: svcName},
+		},
 	}
 
 	for _, tc := range cases {
