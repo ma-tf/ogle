@@ -299,8 +299,13 @@ The help bar supports two modes:
 
 | Mode | Description |
 |------|-------------|
-| Compact (default) | Shows up to 5 essential key bindings in a single line |
+| Compact (default) | Truncatable key bindings left-aligned, pinned bindings right-aligned, never truncated |
 | Full | Shows organised columns of all available key bindings |
+
+Pinned bindings (e.g., `? toggle help`, `q quit`) are always visible in compact mode,
+right-aligned, and never truncated. Non-pinned bindings are shown left-aligned and
+truncated with an ellipsis (`…`) when they exceed the available width. Keymaps that
+do not implement `PinnedKeyMap` render with an empty pinned section (backwards-compatible).
 
 Press `?` to toggle between compact and full help. The toggle is handled at the app
 level before any phase sees the key press. The help bar is implemented in

@@ -115,9 +115,10 @@ _Avoid_: Config, preferences — also distinct from instant keybinding toggles (
 immediately with no overlay
 
 **Help Toggle**:
-The user action that switches the help bar between compact mode (up to 5 essential key bindings) and full mode
-(organised columns of all available key bindings). Activated with `?` on any screen. The toggle is handled at the
-app level before any phase sees the key press.
+The user action that switches the help bar between compact mode (truncatable bindings left-aligned, pinned bindings
+right-aligned, never truncated) and full mode (organised columns of all available key bindings). Pinned bindings
+(e.g., `? toggle help`, `q quit`) are always visible in compact mode. Activated with `?` on any screen. The toggle
+is handled at the app level before any phase sees the key press.
 _Avoid_: Show help, help mode
 
 **About**:
