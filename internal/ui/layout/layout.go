@@ -3,7 +3,8 @@
 // components to agree on how much terminal space is consumed by chrome.
 package layout
 
-// FrameHeight is the number of terminal lines consumed by the app-level
-// chrome (topbar + helpbar + status bar) that phase components must subtract
-// from raw terminal height to determine their usable body area.
+// FrameHeight is the fallback default for the number of terminal lines
+// consumed by the app-level chrome (topbar + bottom bar). Components use
+// this value until they receive a msgs.FrameHeight message with the actual
+// current chrome height.
 const FrameHeight = 3

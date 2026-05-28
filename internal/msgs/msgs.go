@@ -178,8 +178,21 @@ type ClearLogBuffer struct {
 	ServiceName string
 }
 
+// ReportWrapStatus asks the targeted Log Pane to emit its current
+// LogWrapStatus on service switch so the topbar badge stays in sync.
+type ReportWrapStatus struct {
+	ServiceName string
+}
+
 // ToggleLogWrap toggles soft wrapping of log lines in all log panes.
 type ToggleLogWrap struct{}
+
+// FrameHeight communicates the current chrome height consumed by the app frame
+// (topbar + bottom bar). Phase components use this to compute their usable body
+// area instead of relying on the hardcoded layout.FrameHeight constant.
+type FrameHeight struct {
+	Height int
+}
 
 type (
 	// DisplayError asks the app chrome to show err in the status bar for 3 seconds.

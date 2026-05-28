@@ -44,6 +44,7 @@ func New(project *domain.Project, th *theme.Theme, w, h, logBufferCap int, opts 
 	}
 
 	hosts := make([]servicehost.Model, len(project.Services))
+
 	for i, svc := range project.Services {
 		streamerOpts := []logs.Option{}
 		if m.streamerClient != nil {
@@ -78,6 +79,20 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 0, len(m.hosts)+1)
 
 	switch msg := msg.(type) {
+	case msgs.ReportWrapStatus:
+		for i := range m.hosts {
+			if m.hosts[i].ServiceName() == msg.ServiceName {
+				var cmd tea.Cmd
+
+				m.hosts[i], cmd = m.hosts[i].Update(msg)
+				cmds = append(cmds, cmd)
+
+				break
+			}
+		}
+
+		return m, tea.Batch(cmds...)
+
 	case theme.Changed:
 		m.theme = msg.Theme
 

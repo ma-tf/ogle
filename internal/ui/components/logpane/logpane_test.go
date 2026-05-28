@@ -166,6 +166,51 @@ func TestUpdate(t *testing.T) {
 		},
 
 		{
+			name: "WindowSizeMsg emits LogWrapStatus when narrowing creates overflow",
+			setup: func() logpane.Model {
+				ch := make(chan string, 1)
+				ch <- longLine
+
+				m := logpane.New(theme.Default(), 200, 100, 100, ch)
+				m, _ = m.Update(msgs.LogLinesAvailable{})
+
+				return m
+			},
+			msg:         tea.WindowSizeMsg{Width: 50, Height: 100},
+			expectedMsg: msgs.LogWrapStatus{On: false, Overflow: true},
+		},
+
+		{
+			name: "WindowSizeMsg emits LogWrapStatus when widening removes overflow",
+			setup: func() logpane.Model {
+				ch := make(chan string, 1)
+				ch <- longLine
+
+				m := logpane.New(theme.Default(), 50, 100, 100, ch)
+				m, _ = m.Update(msgs.LogLinesAvailable{})
+
+				return m
+			},
+			msg:         tea.WindowSizeMsg{Width: 200, Height: 100},
+			expectedMsg: msgs.LogWrapStatus{On: false, Overflow: false},
+		},
+
+		{
+			name: "WindowSizeMsg emits no LogWrapStatus when overflow unchanged",
+			setup: func() logpane.Model {
+				ch := make(chan string, 1)
+				ch <- longLine
+
+				m := logpane.New(theme.Default(), 50, 100, 100, ch)
+				m, _ = m.Update(msgs.LogLinesAvailable{})
+
+				return m
+			},
+			msg:         tea.WindowSizeMsg{Width: 60, Height: 100},
+			expectedMsg: nil,
+		},
+
+		{
 			name: "WindowSizeMsg scrolls to bottom when at bottom",
 			setup: func() logpane.Model {
 				ch := make(chan string, 30)
@@ -319,6 +364,81 @@ func TestUpdate(t *testing.T) {
 		},
 
 		{
+			name: "ReportWrapStatus emits LogWrapStatus with wrap OFF and no overflow",
+			setup: func() logpane.Model {
+				ch := make(chan string, 1)
+				ch <- "short line"
+
+				return logpane.New(theme.Default(), 120, 100, 100, ch)
+			},
+			msg:         msgs.ReportWrapStatus{ServiceName: clearSvcName},
+			expectedMsg: msgs.LogWrapStatus{On: false, Overflow: false, ServiceName: clearSvcName},
+		},
+
+		{
+			name: "ReportWrapStatus emits LogWrapStatus with overflow when wrap OFF and lines overflow",
+			setup: func() logpane.Model {
+				ch := make(chan string, 1)
+				ch <- longLine
+
+				m := logpane.New(theme.Default(), 120, 100, 100, ch)
+				m, _ = m.Update(msgs.LogLinesAvailable{})
+
+				return m
+			},
+			msg:         msgs.ReportWrapStatus{ServiceName: clearSvcName},
+			expectedMsg: msgs.LogWrapStatus{On: false, Overflow: true, ServiceName: clearSvcName},
+		},
+
+		{
+			name: "ReportWrapStatus emits LogWrapStatus with wrap ON, no overflow",
+			setup: func() logpane.Model {
+				ch := make(chan string, 1)
+				ch <- "short line"
+
+				m := logpane.New(theme.Default(), 120, 100, 100, ch)
+				m, _ = m.Update(msgs.LogLinesAvailable{})
+				m, _ = m.Update(msgs.ToggleLogWrap{})
+
+				return m
+			},
+			msg:         msgs.ReportWrapStatus{ServiceName: clearSvcName},
+			expectedMsg: msgs.LogWrapStatus{On: true, Overflow: false, ServiceName: clearSvcName},
+		},
+
+		{
+			name: "ReportWrapStatus is read-only does not toggle wrap",
+			setup: func() logpane.Model {
+				ch := make(chan string, 1)
+				ch <- "short line"
+
+				m := logpane.New(theme.Default(), 120, 100, 100, ch)
+				m, _ = m.Update(msgs.LogLinesAvailable{})
+
+				return m
+			},
+			msg:         msgs.ReportWrapStatus{ServiceName: clearSvcName},
+			expectedMsg: msgs.LogWrapStatus{On: false, Overflow: false, ServiceName: clearSvcName},
+			check: func(t *testing.T, m logpane.Model) {
+				t.Helper()
+
+				// Second ReportWrapStatus confirms first did not mutate state
+				_, cmd := m.Update(msgs.ReportWrapStatus{ServiceName: "readonly-check"})
+				require.NotNil(t, cmd)
+				require.Equal(t,
+					msgs.LogWrapStatus{On: false, Overflow: false, ServiceName: "readonly-check"},
+					cmd())
+
+				// Toggle confirms wrap was still OFF after ReportWrapStatus
+				_, cmd = m.Update(msgs.ToggleLogWrap{})
+				require.NotNil(t, cmd)
+				require.Equal(t,
+					msgs.LogWrapStatus{On: true, Overflow: false, ServiceName: ""},
+					cmd())
+			},
+		},
+
+		{
 			name: "theme.Changed updates theme pointer",
 			setup: func() logpane.Model {
 				ch := make(chan string, 1)
@@ -331,6 +451,53 @@ func TestUpdate(t *testing.T) {
 			check: func(t *testing.T, m logpane.Model) {
 				t.Helper()
 				assert.NotPanics(t, func() { m.View() })
+			},
+		},
+
+		{
+			name: "FrameHeight does not produce a command",
+			setup: func() logpane.Model {
+				ch := make(chan string, 1)
+				ch <- "line"
+
+				m := logpane.New(theme.Default(), 120, 24, 100, ch)
+				m, _ = m.Update(msgs.LogLinesAvailable{})
+
+				return m
+			},
+			msg:         msgs.FrameHeight{Height: 5},
+			expectedMsg: nil,
+			check: func(t *testing.T, m logpane.Model) {
+				t.Helper()
+
+				v := m.View().Content
+				assert.NotEmpty(t, v, "view should render after FrameHeight update")
+			},
+		},
+
+		{
+			name: "FrameHeight after WindowSizeMsg adjusts layout",
+			setup: func() logpane.Model {
+				ch := make(chan string, 10)
+				for i := range 5 {
+					ch <- fmt.Sprintf("test_line_%d", i)
+				}
+
+				m := logpane.New(theme.Default(), 120, 24, 100, ch)
+				m, _ = m.Update(msgs.LogLinesAvailable{})
+				m, _ = m.Update(tea.WindowSizeMsg{Width: 120, Height: 30})
+				m, _ = m.Update(msgs.FrameHeight{Height: 4})
+
+				return m
+			},
+			msg:         msgs.FrameHeight{Height: 8},
+			expectedMsg: nil,
+			check: func(t *testing.T, m logpane.Model) {
+				t.Helper()
+
+				v := m.View().Content
+				assert.Contains(t, v, "test_line_0",
+					"should still show lines after FrameHeight update")
 			},
 		},
 	}

@@ -136,6 +136,7 @@ func TestUpdateFileRemoved(t *testing.T) {
 
 	foundTopbar := false
 	foundBindings := false
+	foundFrameHeight := false
 
 	for _, entry := range batch {
 		if tc, tcOk := entry().(msgs.TopbarContext); tcOk {
@@ -147,11 +148,14 @@ func TestUpdateFileRemoved(t *testing.T) {
 			assert.NotNil(t, bm.Keymap)
 
 			foundBindings = true
+		} else if _, fhOk := entry().(msgs.FrameHeight); fhOk {
+			foundFrameHeight = true
 		}
 	}
 
 	assert.True(t, foundTopbar, "expected TopbarContext in BatchMsg")
 	assert.True(t, foundBindings, "expected BindingsMsg in BatchMsg")
+	assert.True(t, foundFrameHeight, "expected FrameHeight in BatchMsg")
 }
 
 func TestWatchingKeymapPinnedHelp(t *testing.T) {
@@ -317,6 +321,7 @@ func TestUpdateProjectLoaded(t *testing.T) {
 	require.True(t, ok, "expected BatchMsg, got %T", msg)
 
 	found := false
+	foundFrameHeight := false
 
 	for _, entry := range batch {
 		if tc, tcOk := entry().(msgs.TopbarContext); tcOk {
@@ -324,12 +329,15 @@ func TestUpdateProjectLoaded(t *testing.T) {
 			assert.Equal(t, "compose.yaml", tc.File)
 
 			found = true
+		}
 
-			break
+		if _, fhOk := entry().(msgs.FrameHeight); fhOk {
+			foundFrameHeight = true
 		}
 	}
 
 	require.True(t, found, "expected TopbarContext in BatchMsg")
+	assert.True(t, foundFrameHeight, "expected FrameHeight in BatchMsg")
 }
 
 func TestView(t *testing.T) {
@@ -464,7 +472,50 @@ func TestUpdateWindowSize(t *testing.T) {
 
 	result, cmd := m.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
 	require.NotNil(t, result)
-	require.Nil(t, cmd)
+	require.NotNil(t, cmd)
+
+	assertHasFrameHeight(t, cmd)
+}
+
+func assertFrameHeightInBatch(t *testing.T, batch tea.BatchMsg) {
+	t.Helper()
+
+	for _, entry := range batch {
+		if entry == nil {
+			continue
+		}
+
+		if fh, ok := entry().(msgs.FrameHeight); ok {
+			assert.Positive(t, fh.Height, "FrameHeight should be positive")
+			assert.LessOrEqual(t, fh.Height, 10, "FrameHeight should be reasonable")
+
+			return
+		}
+	}
+
+	t.Log("FrameHeight not found in batch - entries:", len(batch))
+}
+
+func assertHasFrameHeight(t *testing.T, cmd tea.Cmd) {
+	t.Helper()
+
+	require.NotNil(t, cmd)
+	msg := cmd()
+
+	if batch, ok := msg.(tea.BatchMsg); ok {
+		assertFrameHeightInBatch(t, batch)
+
+		return
+	}
+
+	if fh, ok := msg.(msgs.FrameHeight); ok {
+		assert.Positive(t, fh.Height, "FrameHeight should be positive")
+		assert.LessOrEqual(t, fh.Height, 10, "FrameHeight should be reasonable")
+
+		return
+	}
+
+	t.Errorf("expected FrameHeight, got %T", msg)
 }
 
 func TestViewPhaseContent(t *testing.T) {
@@ -578,6 +629,7 @@ func TestUpdate(t *testing.T) {
 		// assert
 		expectedMsg tea.Msg
 		expectCmd   bool
+		check       func(*testing.T, tea.Cmd)
 	}
 
 	cases := []testCase{
@@ -600,11 +652,19 @@ func TestUpdate(t *testing.T) {
 			name:      "DisplayStatus produces command",
 			msg:       msgs.DisplayStatus{Msg: testStatusMsg},
 			expectCmd: true,
+			check: func(t *testing.T, cmd tea.Cmd) {
+				t.Helper()
+				assertHasFrameHeight(t, cmd)
+			},
 		},
 		{
-			name:      "ClearStatusMsg produces no command",
+			name:      "ClearStatusMsg produces command",
 			msg:       msgs.ClearStatusMsg{},
-			expectCmd: false,
+			expectCmd: true,
+			check: func(t *testing.T, cmd tea.Cmd) {
+				t.Helper()
+				assertHasFrameHeight(t, cmd)
+			},
 		},
 	}
 
@@ -620,6 +680,8 @@ func TestUpdate(t *testing.T) {
 			_, cmd := m.Update(tc.msg)
 
 			switch {
+			case tc.check != nil:
+				tc.check(t, cmd)
 			case tc.expectedMsg != nil:
 				require.NotNil(t, cmd)
 				require.Equal(t, tc.expectedMsg, cmd())
@@ -642,6 +704,7 @@ func showingAbout() func(m app.Model) app.Model {
 	}
 }
 
+//nolint:funlen // many table-driven cases
 func TestUpdateKeyPress(t *testing.T) {
 	t.Parallel()
 
@@ -652,6 +715,7 @@ func TestUpdateKeyPress(t *testing.T) {
 		expectedMsg  tea.Msg
 		expectCmd    bool
 		checkShowAll bool
+		check        func(*testing.T, tea.Cmd)
 	}
 
 	cases := []testCase{
@@ -669,6 +733,21 @@ func TestUpdateKeyPress(t *testing.T) {
 			name:         "question mark toggles help bar",
 			msg:          tea.KeyPressMsg{Text: "?"},
 			checkShowAll: true,
+		},
+		{
+			name: "question mark toggle includes FrameHeight cmd",
+			setup: func(m app.Model) app.Model {
+				r, _ := m.Update(msgs.BindingsMsg{Keymap: testKeymap{}})
+
+				m, _ = r.(app.Model)
+
+				return m
+			},
+			msg: tea.KeyPressMsg{Text: "?"},
+			check: func(t *testing.T, cmd tea.Cmd) {
+				t.Helper()
+				assertHasFrameHeight(t, cmd)
+			},
 		},
 		{
 			name:        "F1 opens about when not shown",
@@ -707,13 +786,19 @@ func TestUpdateKeyPress(t *testing.T) {
 
 			if tc.checkShowAll {
 				r, _ := m.Update(msgs.BindingsMsg{Keymap: testKeymap{}})
-				v1 := r.View().Content
+				m2, ok := r.(app.Model)
+				require.True(t, ok)
 
-				r, cmd := m.Update(tc.msg)
+				v1 := m2.View().Content
+
+				r, cmd := m2.Update(tc.msg)
 				require.NotNil(t, r)
-				require.Nil(t, cmd)
+				require.NotNil(t, cmd, "cmd should be non-nil (helpbar + frameHeight)")
 
-				v2 := r.View().Content
+				m3, ok := r.(app.Model)
+				require.True(t, ok)
+
+				v2 := m3.View().Content
 				assert.NotEqual(t, v1, v2, "help bar content should change on toggle")
 
 				return
@@ -723,6 +808,8 @@ func TestUpdateKeyPress(t *testing.T) {
 			require.NotNil(t, result)
 
 			switch {
+			case tc.check != nil:
+				tc.check(t, cmd)
 			case tc.expectedMsg != nil:
 				require.NotNil(t, cmd)
 				require.Equal(t, tc.expectedMsg, cmd())

@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -52,6 +53,12 @@ const (
 	PhaseWatching
 )
 
+const (
+	chromeTopbar      = 1 // topbar is always 1 line
+	chromeStatusbar   = 1 // statusbar is 1 line
+	chromeCompactHelp = 1 // compact helpbar is 1 line
+)
+
 // Model is the root flow orchestrator.
 type Model struct {
 	ctx         context.Context
@@ -75,6 +82,10 @@ type Model struct {
 	phase        int
 	width        int
 	height       int
+
+	statusActive bool
+	helpExpanded bool
+	keymap       help.KeyMap
 }
 
 // New constructs the app Model. Watcher creation is synchronous; if it
@@ -153,6 +164,9 @@ func New(
 		phase:        currentPhase,
 		width:        width,
 		height:       height,
+		statusActive: false,
+		helpExpanded: false,
+		keymap:       nil,
 	}, wtr.Close, nil
 }
 
@@ -176,6 +190,8 @@ func (m Model) Init() tea.Cmd {
 
 // Update drives the root state machine. Messages are either handled by app
 // directly or dispatched to the active phase model.
+//
+//nolint:funlen // long multi-branch switch
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var topbarCmd, helpbarCmd, statusbarCmd, aboutCmd tea.Cmd
 
@@ -228,23 +244,29 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case msgs.FileRemoved:
 		m.watching = watching.New(msg.File, m.width, m.height, m.theme, m.parser)
 		m.phase = PhaseWatching
+		m.statusActive = false
 
 		return m, tea.Batch(
 			func() tea.Msg { return msgs.TopbarContext{Phase: "watching", File: "", Service: ""} },
 			func() tea.Msg { return msgs.BindingsMsg{Keymap: watchingKeymap{}} },
+			m.frameHeightCmd(),
 		)
 
 	case msgs.DisplayError,
 		msgs.DisplayStatus,
 		msgs.ClearStatusMsg:
 		m.statusbar, statusbarCmd = m.statusbar.Update(msg)
+		m.statusActive = m.statusbar.View().Content != ""
 
-		return m, statusbarCmd
+		return m, tea.Batch(statusbarCmd, m.frameHeightCmd())
 
 	case msgs.AboutVisibilityChanged:
 		m.showingAbout = msg.Visible
 
 		return m, nil
+
+	case msgs.BindingsMsg:
+		m.keymap = msg.Keymap
 	}
 
 	m.topbar, topbarCmd = m.topbar.Update(msg)
@@ -266,7 +288,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.watching, cmd = m.watching.Update(msg)
 	}
 
-	return m, tea.Batch(cmd, topbarCmd, helpbarCmd, statusbarCmd, aboutCmd)
+	return m, tea.Batch(cmd, topbarCmd, helpbarCmd, statusbarCmd, aboutCmd, m.frameHeightCmd())
 }
 
 func (m Model) handleSettingsApplied(msg msgs.SettingsApplied) (tea.Model, tea.Cmd) {
@@ -320,8 +342,9 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 		var helpbarCmd tea.Cmd
 
 		m.helpbar, helpbarCmd = m.helpbar.Update(helpbar.ToggleMsg{})
+		m.helpExpanded = !m.helpExpanded
 
-		return m, helpbarCmd
+		return m, tea.Batch(helpbarCmd, m.frameHeightCmd())
 	case key.Matches(msg, keyAbout):
 		m.showingAbout = true
 
@@ -345,6 +368,7 @@ func (m Model) handleProjectLoaded(msg msgs.ProjectLoaded) (Model, tea.Cmd) {
 		m.parser,
 	)
 	m.phase = PhaseDashboard
+	m.statusActive = false
 
 	return m, tea.Batch(
 		m.dashboard.Init(),
@@ -355,6 +379,7 @@ func (m Model) handleProjectLoaded(msg msgs.ProjectLoaded) (Model, tea.Cmd) {
 				Service: "",
 			}
 		},
+		m.frameHeightCmd(),
 	)
 }
 
@@ -387,6 +412,38 @@ func (m Model) handleFileAvailabilityChanged(
 	}
 
 	return m, tea.Batch(cmd, m.watcher.Next())
+}
+
+// computeFrameHeight returns the current number of terminal lines consumed by
+// the app chrome (topbar + bottom bar). Called whenever the help bar or status
+// bar state changes.
+func (m Model) computeFrameHeight() int {
+	if m.statusActive {
+		return chromeTopbar + chromeStatusbar
+	}
+
+	if m.helpExpanded && m.keymap != nil {
+		fullHelp := m.keymap.FullHelp()
+		maxCol := 0
+
+		for _, col := range fullHelp {
+			if len(col) > maxCol {
+				maxCol = len(col)
+			}
+		}
+
+		return chromeTopbar + maxCol
+	}
+
+	return chromeTopbar + chromeCompactHelp
+}
+
+// frameHeightCmd returns a command that delivers the current frame height
+// to phase components so they can adjust their usable body area.
+func (m Model) frameHeightCmd() tea.Cmd {
+	return func() tea.Msg {
+		return msgs.FrameHeight{Height: m.computeFrameHeight()}
+	}
 }
 
 // View composes the top bar, active phase body, status bar, and help bar into a unified frame.

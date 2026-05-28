@@ -52,6 +52,7 @@ type Model struct {
 	selectedName    string
 	runtimeData     map[string]*domain.ServiceRuntimeData
 	w, h            int
+	frameHeight     int
 }
 
 // New returns a Model.
@@ -90,6 +91,7 @@ func New(
 		runtimeData:     nil,
 		w:               w,
 		h:               h,
+		frameHeight:     layout.FrameHeight,
 	}
 }
 
@@ -107,7 +109,7 @@ func (m Model) Init() tea.Cmd {
 
 // Update handles dashboard-level messages.
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
-	var carouselCmd, panCmd, settingsCmd, accCmd, labelsAccordionCmd, topbarCtxCmd, inspectCmd tea.Cmd
+	var carouselCmd, panCmd, settingsCmd, accCmd, labelsAccordionCmd, topbarCtxCmd, inspectCmd, reportWrapCmd tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -168,6 +170,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			}
 		}
 
+		reportWrapCmd = func() tea.Msg {
+			return msgs.ReportWrapStatus(msg)
+		}
+
 		if m.runtimeData != nil {
 			if rt, ok := m.runtimeData[msg.ServiceName]; ok && rt.ContainerID != "" {
 				inspectCmd = m.docker.Inspect(m.ctx, rt.ContainerID)
@@ -178,6 +184,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		if msg.Err == nil {
 			m.runtimeData = msg.Runtimes
 		}
+
+	case msgs.FrameHeight:
+		m.frameHeight = msg.Height
 	}
 
 	m.accordion, accCmd = m.accordion.Update(msg)
@@ -196,6 +205,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		panCmd,
 		settingsCmd,
 		topbarCtxCmd,
+		reportWrapCmd,
 		inspectCmd,
 	)
 }
@@ -337,7 +347,7 @@ func (m Model) View() tea.View {
 	listH := lipgloss.Height(listContent)
 	listW := lipgloss.Width(listContent)
 
-	usableH := m.h - layout.FrameHeight
+	usableH := m.h - m.frameHeight
 
 	if listH+accordionHeight <= usableH {
 		accView := m.accordion.View().Content

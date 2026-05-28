@@ -468,6 +468,27 @@ func TestUpdate(t *testing.T) {
 				t.Error("expected TopbarContext in batch")
 			},
 		},
+		{
+			name: "ServiceSelected emits ReportWrapStatus for selected service",
+			msg:  msgs.ServiceSelected{ServiceName: svcWeb},
+			check: func(t *testing.T, cmd tea.Cmd) {
+				t.Helper()
+				require.NotNil(t, cmd)
+				msg := cmd()
+
+				if batch, isBatch := msg.(tea.BatchMsg); isBatch {
+					for _, entry := range batch {
+						if rws, isRWS := entry().(msgs.ReportWrapStatus); isRWS {
+							assert.Equal(t, svcWeb, rws.ServiceName)
+
+							return
+						}
+					}
+				}
+
+				t.Error("expected ReportWrapStatus in batch")
+			},
+		},
 		// --- labels: ServiceSelected with runtime triggers Inspect ---
 		{
 			name: "ServiceSelected with runtime data triggers Inspect",
@@ -515,6 +536,16 @@ func TestUpdate(t *testing.T) {
 				}
 
 				assert.True(t, found, "expected ContainerLabelsPolled in batch")
+			},
+		},
+		// --- FrameHeight ---
+		{
+			name: "FrameHeight updates layout",
+			msg:  msgs.FrameHeight{Height: 5},
+			check: func(t *testing.T, cmd tea.Cmd) {
+				t.Helper()
+
+				assert.Nil(t, cmd, "FrameHeight should not produce a command")
 			},
 		},
 		// --- labels: ServiceSelected without runtime does not trigger Inspect ---
@@ -609,6 +640,15 @@ func TestView(t *testing.T) {
 		{
 			name:           "labels accordion header visible in view",
 			expectedResult: "▶ Labels",
+		},
+		{
+			name: "FrameHeight updates usable height in view",
+			setup: func(m dashboard.Model) dashboard.Model {
+				m, _ = m.Update(msgs.FrameHeight{Height: 10})
+
+				return m
+			},
+			expectedResult: "web",
 		},
 	}
 

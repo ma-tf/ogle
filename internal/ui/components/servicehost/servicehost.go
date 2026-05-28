@@ -55,11 +55,21 @@ func (m Model) Init() tea.Cmd {
 	return m.logPane.Init()
 }
 
+// ServiceName returns the name of the service this host manages.
+func (m Model) ServiceName() string {
+	return m.def.Name
+}
+
 // Update routes messages to children.
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
+	case msgs.ReportWrapStatus:
+		if msg.ServiceName != m.def.Name {
+			return m, nil
+		}
+
 	case msgs.ClearLogBuffer:
 		if msg.ServiceName != m.def.Name {
 			return m, nil

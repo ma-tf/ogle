@@ -334,6 +334,30 @@ func TestUpdate_LogStream(t *testing.T) {
 			msg:         msgs.ToggleLogWrap{},
 			expectedMsg: msgs.LogWrapStatus{On: false, Overflow: false, ServiceName: svcName},
 		},
+
+		{
+			name: "ReportWrapStatus matching service name emits LogWrapStatus",
+			setup: func(t *testing.T) servicehost.Model {
+				t.Helper()
+				m, _ := newModel(t)
+
+				return m
+			},
+			msg:         msgs.ReportWrapStatus{ServiceName: svcName},
+			expectedMsg: msgs.LogWrapStatus{On: false, Overflow: false, ServiceName: svcName},
+		},
+
+		{
+			name: "ReportWrapStatus non-matching service name is no-op",
+			setup: func(t *testing.T) servicehost.Model {
+				t.Helper()
+				m, _ := newModel(t)
+
+				return m
+			},
+			msg:       msgs.ReportWrapStatus{ServiceName: "other-service"},
+			expectCmd: false,
+		},
 	}
 
 	for _, tc := range cases {

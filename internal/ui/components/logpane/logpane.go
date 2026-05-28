@@ -28,7 +28,9 @@ type Model struct {
 	lineCh       <-chan string
 	th           *theme.Theme
 	w            int
+	rawH         int
 	h            int
+	frameHeight  int
 	wrap         bool
 	prevOverflow bool
 }
@@ -42,7 +44,9 @@ func New(th *theme.Theme, w, h, lineCap int, lineCh <-chan string) Model {
 
 	carouselW := max(w, listMinTermWidth) * listRatio / pctDivisor
 	panW := max(w-carouselW, 0)
-	usableH := max(0, h-layout.FrameHeight)
+	frameH := layout.FrameHeight
+	rawH := h
+	usableH := max(0, rawH-frameH)
 
 	vp := viewport.New(
 		viewport.WithWidth(max(panW-borderWidth, 0)),
@@ -64,7 +68,9 @@ func New(th *theme.Theme, w, h, lineCap int, lineCh <-chan string) Model {
 		lineCh:       lineCh,
 		th:           th,
 		w:            panW,
+		rawH:         rawH,
 		h:            usableH,
+		frameHeight:  frameH,
 		wrap:         false,
 		prevOverflow: false,
 	}
@@ -80,6 +86,16 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case msgs.LogLinesAvailable:
 		return m.drainLines()
+
+	case msgs.ReportWrapStatus:
+		overflow := false
+		if !m.wrap {
+			overflow = m.hasOverflow()
+		}
+
+		return m, func() tea.Msg {
+			return msgs.LogWrapStatus{On: m.wrap, Overflow: overflow, ServiceName: msg.ServiceName}
+		}
 
 	case msgs.ToggleLogWrap:
 		m.wrap = !m.wrap
@@ -122,17 +138,13 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case theme.Changed:
 		m.th = msg.Theme
 
-	case tea.WindowSizeMsg:
-		wasAtBottom := m.viewport.AtBottom()
-		carouselW := max(msg.Width, listMinTermWidth) * listRatio / pctDivisor
-		m.w = msg.Width - carouselW
-		m.h = max(0, msg.Height-layout.FrameHeight)
-		m.viewport.SetWidth(max(m.w-borderWidth, 0))
+	case msgs.FrameHeight:
+		m.frameHeight = msg.Height
+		m.h = max(0, m.rawH-m.frameHeight)
 		m.viewport.SetHeight(max(m.h-borderWidth, 0))
 
-		if wasAtBottom || m.viewport.PastBottom() {
-			m.viewport.GotoBottom()
-		}
+	case tea.WindowSizeMsg:
+		return m.onWindowResize(msg)
 	}
 
 	var cmd tea.Cmd
@@ -140,6 +152,33 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	m.viewport, cmd = m.viewport.Update(msg)
 
 	return m, cmd
+}
+
+func (m Model) onWindowResize(msg tea.WindowSizeMsg) (Model, tea.Cmd) {
+	wasAtBottom := m.viewport.AtBottom()
+	carouselW := max(msg.Width, listMinTermWidth) * listRatio / pctDivisor
+	m.w = msg.Width - carouselW
+	m.rawH = msg.Height
+	m.h = max(0, m.rawH-m.frameHeight)
+	m.viewport.SetWidth(max(m.w-borderWidth, 0))
+	m.viewport.SetHeight(max(m.h-borderWidth, 0))
+
+	if wasAtBottom || m.viewport.PastBottom() {
+		m.viewport.GotoBottom()
+	}
+
+	if !m.wrap {
+		overflow := m.hasOverflow()
+		if overflow != m.prevOverflow {
+			m.prevOverflow = overflow
+
+			return m, func() tea.Msg {
+				return msgs.LogWrapStatus{On: m.wrap, Overflow: overflow, ServiceName: ""}
+			}
+		}
+	}
+
+	return m, nil
 }
 
 func (m Model) drainLineCh() Model {
