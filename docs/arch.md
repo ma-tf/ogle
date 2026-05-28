@@ -57,8 +57,8 @@ internal/
     │       └── keymap.go             # startup-specific key bindings
     ├── hoverlist/                    # reusable hover-highlight list infrastructure
     ├── layout/                       # layout constants (FrameHeight)
-    └── theme/                        # Theme type, built-in themes, user theme loading
-        ├── theme.go                  # Theme struct, Load(), override logic
+    └── theme/                        # Theme type, built-in themes, user theme loading, about theme variables
+        ├── theme.go                  # Theme struct (incl. about-specific vars), Load(), override logic
         ├── builtin.go                # Default theme (dark)
         ├── default_light.go          # Default theme (light)
         ├── solarized_dark.go

@@ -282,6 +282,17 @@ The overlay is rendered using the compositor on top of the current view. While t
 overlay is open, phase-specific key handling is blocked. The overlay is implemented
 in `internal/ui/components/about/`.
 
+Custom theme overrides in `UserThemeFile` support 6 about-specific YAML fields:
+
+| YAML field | Maps to | Description |
+|------------|---------|-------------|
+| `aboutBackgroundColor` | `Theme.AboutBackground` | About overlay background fill |
+| `aboutTitleColor` | `Theme.AboutTitleColor` | Title ("ogle") foreground |
+| `aboutArtColor` | `Theme.AboutArtColor` | ASCII art foreground |
+| `aboutTextColor` | `Theme.AboutTextColor` | Version line foreground |
+| `aboutLinkColor` | `Theme.AboutLinkColor` | URL hyperlink foreground |
+| `aboutHintColor` | `Theme.AboutHintColor` | Close hint foreground |
+
 ## Help Toggle
 
 The help bar supports two modes:

@@ -110,7 +110,10 @@ remains live underneath. Changes take effect immediately and are persisted to th
 adjustment via `config.Save`. Theme selection supports 8 built-in names: `default`, `default_light`,
 `catppuccino_frappe`, `catppuccino_latte`, `catppuccino_macchiato`, `catppuccino_mocha`, `solarized_dark`,
 `solarized_light`. Users can also drop custom theme files at `~/.ogle/themes/<name>.yaml` that override a built-in
-base theme. Navigate fields with ↑/↓, adjust values with ←/→.
+base theme. The available override fields include 6 about-specific YAML keys:
+`aboutBackgroundColor`, `aboutTitleColor`, `aboutArtColor`, `aboutTextColor`,
+`aboutLinkColor`, and `aboutHintColor`. Navigate fields with ↑/↓, adjust values
+with ←/→.
 _Avoid_: Config, preferences — also distinct from instant keybinding toggles (e.g., Orphan Toggle) which take effect
 immediately with no overlay
 
