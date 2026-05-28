@@ -802,8 +802,6 @@ func TestUpdateMouseClick(t *testing.T) {
 	}
 }
 
-// Helper: extractBindingsMsgFromBatch unwraps a BatchMsg to find the first
-// BindingsMsg. Returns the message and true if found.
 func extractBindingsMsgFromBatch(t *testing.T, batch tea.BatchMsg) (msgs.BindingsMsg, bool) {
 	t.Helper()
 
@@ -817,7 +815,7 @@ func extractBindingsMsgFromBatch(t *testing.T, batch tea.BatchMsg) (msgs.Binding
 }
 
 // Helper: extractThemeChanged unwraps a single message or batch message to
-// find the first theme.Changed. Returns nil if not found.
+// find the first theme.Changed.
 func extractThemeChanged(t *testing.T, msg tea.Msg) *theme.Changed {
 	t.Helper()
 
