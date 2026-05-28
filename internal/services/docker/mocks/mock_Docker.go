@@ -91,6 +91,65 @@ func (_c *MockDocker_Connect_Call) RunAndReturn(run func(ctx context.Context) te
 	return _c
 }
 
+// Inspect provides a mock function for the type MockDocker
+func (_mock *MockDocker) Inspect(ctx context.Context, containerID string) tea.Cmd {
+	ret := _mock.Called(ctx, containerID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Inspect")
+	}
+
+	var r0 tea.Cmd
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) tea.Cmd); ok {
+		r0 = returnFunc(ctx, containerID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(tea.Cmd)
+		}
+	}
+	return r0
+}
+
+// MockDocker_Inspect_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Inspect'
+type MockDocker_Inspect_Call struct {
+	*mock.Call
+}
+
+// Inspect is a helper method to define mock.On call
+//   - ctx context.Context
+//   - containerID string
+func (_e *MockDocker_Expecter) Inspect(ctx interface{}, containerID interface{}) *MockDocker_Inspect_Call {
+	return &MockDocker_Inspect_Call{Call: _e.mock.On("Inspect", ctx, containerID)}
+}
+
+func (_c *MockDocker_Inspect_Call) Run(run func(ctx context.Context, containerID string)) *MockDocker_Inspect_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockDocker_Inspect_Call) Return(cmd tea.Cmd) *MockDocker_Inspect_Call {
+	_c.Call.Return(cmd)
+	return _c
+}
+
+func (_c *MockDocker_Inspect_Call) RunAndReturn(run func(ctx context.Context, containerID string) tea.Cmd) *MockDocker_Inspect_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Ps provides a mock function for the type MockDocker
 func (_mock *MockDocker) Ps(ctx context.Context, composeFile string, projectName string) tea.Cmd {
 	ret := _mock.Called(ctx, composeFile, projectName)

@@ -1,0 +1,91 @@
+package docker
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"strings"
+
+	tea "charm.land/bubbletea/v2"
+
+	"github.com/ma-tf/ogle/internal/msgs"
+)
+
+const (
+	ogleLabelPrefix = "ogle."
+	inspectPath     = "http://localhost/containers/%s/json"
+)
+
+// inspectResponse maps the relevant part of the Docker Engine API
+// GET /containers/{id}/json response.
+type inspectResponse struct {
+	Config struct {
+		Labels map[string]string `json:"labels"`
+	} `json:"config"`
+}
+
+// Inspect returns a Cmd that fetches container metadata via the Docker Engine
+// API and returns ogle.* labels via ContainerLabelsPolled.
+func (s *Service) Inspect(ctx context.Context, containerID string) tea.Cmd {
+	return func() tea.Msg {
+		path := fmt.Sprintf(inspectPath, containerID)
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, path, nil)
+		if err != nil {
+			return msgs.ContainerLabelsPolled{
+				Labels: nil,
+				Err:    fmt.Errorf("build inspect request: %w", err),
+			}
+		}
+
+		resp, err := s.httpClient.Do(req)
+		if err != nil {
+			return msgs.ContainerLabelsPolled{
+				Labels: nil,
+				Err:    fmt.Errorf("inspect container: %w", err),
+			}
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return msgs.ContainerLabelsPolled{
+				Labels: nil,
+				Err:    fmt.Errorf("%w: %d", ErrUnexpectedInspectStatus, resp.StatusCode),
+			}
+		}
+
+		var data inspectResponse
+		if decErr := json.NewDecoder(resp.Body).Decode(&data); decErr != nil {
+			return msgs.ContainerLabelsPolled{
+				Labels: nil,
+				Err:    fmt.Errorf("decode inspect response: %w", decErr),
+			}
+		}
+
+		labels := filterOgleLabels(data.Config.Labels)
+
+		return msgs.ContainerLabelsPolled{Labels: labels, Err: nil}
+	}
+}
+
+// filterOgleLabels returns only labels with the ogle.* prefix.
+func filterOgleLabels(all map[string]string) map[string]string {
+	if len(all) == 0 {
+		return nil
+	}
+
+	result := make(map[string]string)
+
+	for k, v := range all {
+		if strings.HasPrefix(k, ogleLabelPrefix) {
+			result[k] = v
+		}
+	}
+
+	if len(result) == 0 {
+		return nil
+	}
+
+	return result
+}

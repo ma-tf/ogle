@@ -87,11 +87,12 @@ The interactive mode that narrows the Service list to entries whose name matches
 with `/` on the Dashboard. Planned feature; not yet implemented.
 _Avoid_: Log filter (distinct feature), search
 
-**Label Toggle**:
-The user action that globally shows or hides the `ogle.*` label section in the Service Inspector. Hidden by default. The
-section is fixed-size, scrollable, and focusable as a sub-focus within the Service Inspector. Planned feature; not yet
-implemented.
-_Avoid_: Metadata toggle, label visibility
+**Labels Accordion**:
+A collapsible accordion section below the Service Details in the Service Inspector that displays `ogle.*`-prefixed
+labels from the running container, fetched via the Docker Engine API at service selection time. Collapsed by default;
+toggled open/closed by mouse click on the header (no keybinding). Each label renders as `key: value` on its own line
+with no wrapping on overflow. The header remains visible even when no `ogle.*` labels exist or Docker is unavailable.
+_Avoid_: Label toggle, metadata section, label section
 
 **Log Filter**:
 The interactive mode that narrows the Log Stream to lines matching a user-supplied substring. Planned feature; not yet
@@ -199,7 +200,8 @@ specific file to reappear.
 shows a retry countdown and Service States freeze at last-known values. ogle retries automatically.
 - An **Orphan** appears alongside Services in the Dashboard but is not part of the Project. (Future: the **Orphan Toggle**
 will control whether Orphans are shown.)
-- (Future: The **Label Toggle** will control whether the `ogle.*` label section is shown in the **Service Inspector**.)
+- The **Labels Accordion** in the **Service Inspector** displays `ogle.*` container labels fetched from the Docker
+  daemon. It is a separate collapsible section below **Service Details**, collapsed by default, toggled by mouse click.
 
 ## Example dialogue
 
