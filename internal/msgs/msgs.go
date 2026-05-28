@@ -163,6 +163,14 @@ type (
 	}
 )
 
+// ContainerLabelsPolled is emitted by the docker service after a
+// GET /containers/{id}/json inspection completes. Labels contains only
+// ogle.*-prefixed labels; on error Labels is nil.
+type ContainerLabelsPolled struct {
+	Labels map[string]string
+	Err    error
+}
+
 // ClearLogBuffer clears all buffered log lines for the named service.
 type ClearLogBuffer struct {
 	ServiceName string

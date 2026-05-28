@@ -447,7 +447,7 @@ func TestUpdate(t *testing.T) {
 		// --- ServiceSelected ---
 		{
 			name: "ServiceSelected emits TopbarContext with service name",
-			msg:  msgs.ServiceSelected{ServiceName: "api"},
+			msg:  msgs.ServiceSelected{ServiceName: svcAPI},
 			check: func(t *testing.T, cmd tea.Cmd) {
 				t.Helper()
 				require.NotNil(t, cmd)
@@ -456,7 +456,7 @@ func TestUpdate(t *testing.T) {
 				if batch, isBatch := msg.(tea.BatchMsg); isBatch {
 					for _, entry := range batch {
 						if tcMsg, isTC := entry().(msgs.TopbarContext); isTC {
-							assert.Equal(t, "api", tcMsg.Service)
+							assert.Equal(t, svcAPI, tcMsg.Service)
 							assert.Equal(t, "dashboard", tcMsg.Phase)
 							assert.Equal(t, "compose.yaml", tcMsg.File)
 
@@ -466,6 +466,85 @@ func TestUpdate(t *testing.T) {
 				}
 
 				t.Error("expected TopbarContext in batch")
+			},
+		},
+		// --- labels: ServiceSelected with runtime triggers Inspect ---
+		{
+			name: "ServiceSelected with runtime data triggers Inspect",
+			setup: func(
+				m dashboard.Model, mockD *dockermocks.MockDocker, _ *parsermocks.MockParser,
+			) dashboard.Model {
+				m, _ = m.Update(msgs.ServicesPolled{
+					Runtimes: map[string]*domain.ServiceRuntimeData{
+						svcWeb: {ContainerID: "abc123", State: domain.ServiceStateRunning},
+					},
+				})
+
+				mockD.EXPECT().Inspect(mock.Anything, "abc123").
+					Return(tea.Cmd(func() tea.Msg {
+						return msgs.ContainerLabelsPolled{
+							Labels: map[string]string{"ogle.foo": "bar"},
+						}
+					}))
+
+				return m
+			},
+			msg: msgs.ServiceSelected{ServiceName: svcWeb},
+			check: func(t *testing.T, cmd tea.Cmd) {
+				t.Helper()
+				require.NotNil(t, cmd)
+				msg := cmd()
+				batch, ok := msg.(tea.BatchMsg)
+				require.True(t, ok)
+
+				found := false
+
+				for _, entry := range batch {
+					if entry == nil {
+						continue
+					}
+
+					if polled, isPolled := entry().(msgs.ContainerLabelsPolled); isPolled {
+						require.Equal(t, map[string]string{"ogle.foo": "bar"}, polled.Labels)
+						require.NoError(t, polled.Err)
+
+						found = true
+
+						break
+					}
+				}
+
+				assert.True(t, found, "expected ContainerLabelsPolled in batch")
+			},
+		},
+		// --- labels: ServiceSelected without runtime does not trigger Inspect ---
+		{
+			name: "ServiceSelected without runtime data does not trigger Inspect",
+			setup: func(
+				m dashboard.Model, _ *dockermocks.MockDocker, _ *parsermocks.MockParser,
+			) dashboard.Model {
+				return m
+			},
+			msg: msgs.ServiceSelected{ServiceName: svcAPI},
+			check: func(t *testing.T, cmd tea.Cmd) {
+				t.Helper()
+				require.NotNil(t, cmd)
+				msg := cmd()
+				batch, isBatch := msg.(tea.BatchMsg)
+				require.True(t, isBatch)
+
+				for _, entry := range batch {
+					if entry == nil {
+						continue
+					}
+
+					if _, isPolled := entry().(msgs.ContainerLabelsPolled); isPolled {
+						t.Error(
+							"unexpected ContainerLabelsPolled" +
+								" - Inspect should not have been called",
+						)
+					}
+				}
 			},
 		},
 	}
@@ -526,6 +605,10 @@ func TestView(t *testing.T) {
 				return m
 			},
 			expectedResult: "Settings",
+		},
+		{
+			name:           "labels accordion header visible in view",
+			expectedResult: "▶ Labels",
 		},
 	}
 

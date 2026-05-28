@@ -18,13 +18,14 @@ import (
 )
 
 // Docker interacts with the Docker daemon for connectivity, state polling,
-// and service actions. All methods return tea.Cmd values that the Bubble Tea
-// runtime executes asynchronously.
+// inspection, and service actions. All methods return tea.Cmd values that
+// the Bubble Tea runtime executes asynchronously.
 //
 //mockery:generate: true
 type Docker interface {
 	Connect(ctx context.Context) tea.Cmd
 	Ps(ctx context.Context, composeFile, projectName string) tea.Cmd
+	Inspect(ctx context.Context, containerID string) tea.Cmd
 	Stop(ctx context.Context, composeFile, projectName, serviceName string) tea.Cmd
 	Start(ctx context.Context, composeFile, projectName, serviceName string) tea.Cmd
 	Restart(ctx context.Context, composeFile, projectName, serviceName string) tea.Cmd

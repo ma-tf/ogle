@@ -198,6 +198,128 @@ func TestParsePsOutput(t *testing.T) {
 	}
 }
 
+func TestInspect(t *testing.T) {
+	t.Parallel()
+
+	type testCase struct {
+		name string
+		// arrange
+		handler     http.HandlerFunc
+		closeServer bool
+		// assert
+		expectedLabels map[string]string
+		expectedErr    bool
+	}
+
+	tt := []testCase{
+		{
+			name: "returns ogle labels from container inspect",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{
+					"Config": {
+						"Labels": {
+							"ogle.foo": "bar",
+							"ogle.environment": "production",
+							"com.docker.compose.project": "myproject"
+						}
+					}
+				}`))
+			},
+			expectedLabels: map[string]string{
+				"ogle.foo":         "bar",
+				"ogle.environment": "production",
+			},
+		},
+		{
+			name: "no ogle labels returns nil",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{
+					"Config": {
+						"Labels": {
+							"com.docker.compose.project": "myproject"
+						}
+					}
+				}`))
+			},
+			expectedLabels: nil,
+		},
+		{
+			name: "empty labels returns nil",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"Config": {"Labels": {}}}`))
+			},
+			expectedLabels: nil,
+		},
+		{
+			name: "nil labels returns nil",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"Config": {}}`))
+			},
+			expectedLabels: nil,
+		},
+		{
+			name: "non-200 status returns error",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusNotFound)
+			},
+			expectedErr: true,
+		},
+		{
+			name: "dial error returns error",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			},
+			closeServer:  true,
+			expectedErr:  true,
+		},
+		{
+			name: "malformed json returns error",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{invalid}`))
+			},
+			expectedErr: true,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			srv := httptest.NewServer(tc.handler)
+			t.Cleanup(srv.Close)
+
+			client := testServerClient(srv)
+
+			if tc.closeServer {
+				srv.Close()
+			}
+
+			svc := svcdocker.New(svcdocker.WithHTTPClient(client))
+			cmd := svc.Inspect(context.Background(), "abc123")
+			require.NotNil(t, cmd)
+
+			msg := cmd()
+			require.NotNil(t, msg)
+
+			labelsMsg, ok := msg.(msgs.ContainerLabelsPolled)
+			require.True(t, ok, "expected ContainerLabelsPolled, got %T", msg)
+
+			if tc.expectedErr {
+				require.Error(t, labelsMsg.Err)
+				require.Nil(t, labelsMsg.Labels)
+			} else {
+				require.NoError(t, labelsMsg.Err)
+				assert.Equal(t, tc.expectedLabels, labelsMsg.Labels)
+			}
+		})
+	}
+}
+
 func TestParsePsOutputServiceRuntimeData(t *testing.T) {
 	t.Parallel()
 

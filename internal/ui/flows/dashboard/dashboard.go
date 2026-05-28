@@ -21,6 +21,7 @@ import (
 	"github.com/ma-tf/ogle/internal/services/parser"
 	"github.com/ma-tf/ogle/internal/ui/components/accordion"
 	"github.com/ma-tf/ogle/internal/ui/components/carousel"
+	"github.com/ma-tf/ogle/internal/ui/components/labelsaccordion"
 	"github.com/ma-tf/ogle/internal/ui/components/servicepanel"
 	"github.com/ma-tf/ogle/internal/ui/components/settings"
 	"github.com/ma-tf/ogle/internal/ui/layout"
@@ -42,6 +43,7 @@ type Model struct {
 	docker    svcdocker.Docker
 
 	accordion       accordion.Model
+	labelsAccordion labelsaccordion.Model
 	carousel        carousel.Model
 	panel           servicepanel.Model
 	settings        settings.Model
@@ -78,6 +80,7 @@ func New(
 		configDir:       configDir,
 		docker:          docker,
 		accordion:       accordion.New(project, w, accordionHeight, th, zm),
+		labelsAccordion: labelsaccordion.New(th, w, zm),
 		carousel:        carousel.New(project, w, h, th, zm),
 		panel:           servicepanel.New(project, th, w, h, cfg.LogBufferCap),
 		settings:        settings.New(th, cfg, w, h),
@@ -94,6 +97,7 @@ func New(
 func (m Model) Init() tea.Cmd {
 	return tea.Batch(
 		m.carousel.Init(),
+		m.labelsAccordion.Init(),
 		m.panel.Init(),
 		func() tea.Msg {
 			return msgs.BindingsMsg{Keymap: appKeymap{}}
@@ -103,7 +107,7 @@ func (m Model) Init() tea.Cmd {
 
 // Update handles dashboard-level messages.
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
-	var carouselCmd, panCmd, settingsCmd, accCmd, topbarCtxCmd tea.Cmd
+	var carouselCmd, panCmd, settingsCmd, accCmd, labelsAccordionCmd, topbarCtxCmd, inspectCmd tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -164,6 +168,12 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			}
 		}
 
+		if m.runtimeData != nil {
+			if rt, ok := m.runtimeData[msg.ServiceName]; ok && rt.ContainerID != "" {
+				inspectCmd = m.docker.Inspect(m.ctx, rt.ContainerID)
+			}
+		}
+
 	case msgs.ServicesPolled:
 		if msg.Err == nil {
 			m.runtimeData = msg.Runtimes
@@ -171,6 +181,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	}
 
 	m.accordion, accCmd = m.accordion.Update(msg)
+	m.labelsAccordion, labelsAccordionCmd = m.labelsAccordion.Update(msg)
 	m.carousel, carouselCmd = m.carousel.Update(msg)
 	m.panel, panCmd = m.panel.Update(msg)
 
@@ -178,7 +189,15 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.settings, settingsCmd = m.settings.Update(msg)
 	}
 
-	return m, tea.Batch(accCmd, carouselCmd, panCmd, settingsCmd, topbarCtxCmd)
+	return m, tea.Batch(
+		accCmd,
+		labelsAccordionCmd,
+		carouselCmd,
+		panCmd,
+		settingsCmd,
+		topbarCtxCmd,
+		inspectCmd,
+	)
 }
 
 func (m Model) handleKeyPress(msg tea.KeyPressMsg) (Model, tea.Cmd) {
@@ -328,6 +347,15 @@ func (m Model) View() tea.View {
 			Background(m.th.CarouselBackground).
 			Render(accView)
 		listContent = lipgloss.JoinVertical(lipgloss.Top, listContent, accView)
+	}
+
+	labelsContent := m.labelsAccordion.View().Content
+	if labelsContent != "" {
+		labelsContent = lipgloss.NewStyle().
+			Width(listW).
+			Background(m.th.CarouselBackground).
+			Render(labelsContent)
+		listContent = lipgloss.JoinVertical(lipgloss.Top, listContent, labelsContent)
 	}
 
 	listH = lipgloss.Height(listContent)
