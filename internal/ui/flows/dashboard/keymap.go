@@ -19,6 +19,7 @@ var (
 	keyRebuild     = key.NewBinding(key.WithKeys("b"), key.WithHelp("b", "rebuild"))
 	keyClearLog    = key.NewBinding(key.WithKeys("c"), key.WithHelp("c", "clear log"))
 	keyHelp        = key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "toggle help"))
+	keyAbout       = key.NewBinding(key.WithKeys("f1"), key.WithHelp("f1", "about"))
 )
 
 type appKeymap struct{}
@@ -29,9 +30,12 @@ func (k appKeymap) ShortHelp() []key.Binding {
 		carousel.KeyEnter,
 		keyRestart,
 		keyRebuild,
-		keyClearLog,
-		keyQuit,
+		keyToggleWrap,
 	}
+}
+
+func (k appKeymap) PinnedHelp() []key.Binding {
+	return []key.Binding{keyHelp, keyQuit}
 }
 
 func (k appKeymap) FullHelp() [][]key.Binding {
@@ -58,6 +62,7 @@ func (k appKeymap) FullHelp() [][]key.Binding {
 		{
 			keyHelp,
 			keyQuit,
+			keyAbout,
 		},
 	}
 }

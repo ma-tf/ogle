@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	bubbleskey "charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	zone "github.com/lrstanley/bubblezone/v2"
 	"github.com/stretchr/testify/assert"
@@ -546,6 +547,103 @@ func TestView(t *testing.T) {
 			}
 		})
 	}
+}
+
+// ---------------------------------------------------------------------------
+// TestKeymap
+// ---------------------------------------------------------------------------
+
+func extractBindingsMsg(t *testing.T, msg tea.Msg) (msgs.BindingsMsg, bool) {
+	t.Helper()
+
+	batch, ok := msg.(tea.BatchMsg)
+	if !ok {
+		return msgs.BindingsMsg{}, false
+	}
+
+	for _, entry := range batch {
+		if bm, bmOk := entry().(msgs.BindingsMsg); bmOk {
+			return bm, true
+		}
+	}
+
+	return msgs.BindingsMsg{}, false
+}
+
+func TestKeymap_ImplementsPinnedHelp(t *testing.T) {
+	t.Parallel()
+
+	mockD, mockP := dockermocks.NewMockDocker(t), parsermocks.NewMockParser(t)
+	m := newModel(t, mockD, mockP)
+	cmd := m.Init()
+	require.NotNil(t, cmd)
+
+	bindMsg, ok := extractBindingsMsg(t, cmd())
+	require.True(t, ok)
+
+	km, ok := bindMsg.Keymap.(interface {
+		ShortHelp() []bubbleskey.Binding
+		FullHelp() [][]bubbleskey.Binding
+		PinnedHelp() []bubbleskey.Binding
+	})
+	require.True(t, ok, "keymap should implement PinnedHelp")
+
+	pinned := km.PinnedHelp()
+	require.Len(t, pinned, 2)
+	assert.Equal(t, "?", pinned[0].Help().Key)
+	assert.Equal(t, "toggle help", pinned[0].Help().Desc)
+	assert.Equal(t, "q", pinned[1].Help().Key)
+	assert.Equal(t, "quit", pinned[1].Help().Desc)
+}
+
+func TestKeymap_ShortHelp(t *testing.T) {
+	t.Parallel()
+
+	mockD, mockP := dockermocks.NewMockDocker(t), parsermocks.NewMockParser(t)
+	m := newModel(t, mockD, mockP)
+	cmd := m.Init()
+	require.NotNil(t, cmd)
+
+	bindMsg, ok := extractBindingsMsg(t, cmd())
+	require.True(t, ok)
+
+	bindings := bindMsg.Keymap.ShortHelp()
+	require.Len(t, bindings, 5)
+	assert.Equal(t, "tab", bindings[0].Help().Key)
+	assert.Equal(t, "enter", bindings[1].Help().Key)
+	assert.Equal(t, "r", bindings[2].Help().Key)
+	assert.Equal(t, "b", bindings[3].Help().Key)
+	assert.Equal(t, "w", bindings[4].Help().Key)
+}
+
+func TestKeymap_FullHelpIncludesF1(t *testing.T) {
+	t.Parallel()
+
+	mockD, mockP := dockermocks.NewMockDocker(t), parsermocks.NewMockParser(t)
+	m := newModel(t, mockD, mockP)
+	cmd := m.Init()
+	require.NotNil(t, cmd)
+
+	bindMsg, ok := extractBindingsMsg(t, cmd())
+	require.True(t, ok)
+
+	fullHelp := bindMsg.Keymap.FullHelp()
+	require.Len(t, fullHelp, 4)
+
+	col4 := fullHelp[3]
+	found := false
+
+	for _, b := range col4 {
+		if b.Help().Key == "f1" {
+			assert.Equal(t, "about", b.Help().Desc)
+
+			found = true
+
+			break
+		}
+	}
+
+	assert.True(t, found, "expected f1 binding in column 4")
 }
 
 // ---------------------------------------------------------------------------

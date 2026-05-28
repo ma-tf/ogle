@@ -47,6 +47,54 @@ func (k fullKeymap) FullHelp() [][]key.Binding {
 
 var _ help.KeyMap = fullKeymap{}
 
+// pinnedKeymap implements PinnedKeyMap with pinned and truncatable bindings.
+type pinnedKeymap struct{}
+
+func (k pinnedKeymap) ShortHelp() []key.Binding {
+	return []key.Binding{
+		key.NewBinding(key.WithKeys("w"), key.WithHelp("w", "toggle wrap")),
+		key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "toggle help")),
+		key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
+	}
+}
+
+func (k pinnedKeymap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		{
+			key.NewBinding(key.WithKeys("w"), key.WithHelp("w", "toggle wrap")),
+			key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "toggle help")),
+			key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
+		},
+	}
+}
+
+func (k pinnedKeymap) PinnedHelp() []key.Binding {
+	return []key.Binding{
+		key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "toggle help")),
+		key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
+	}
+}
+
+var _ helpbar.PinnedKeyMap = pinnedKeymap{}
+
+// narrowKeymap has a short binding that won't fit at width 10.
+type narrowKeymap struct{}
+
+func (k narrowKeymap) ShortHelp() []key.Binding {
+	return []key.Binding{
+		key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "focus next")),
+		key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "start/stop")),
+	}
+}
+
+func (k narrowKeymap) FullHelp() [][]key.Binding { return nil }
+
+func (k narrowKeymap) PinnedHelp() []key.Binding {
+	return []key.Binding{key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit"))}
+}
+
+var _ helpbar.PinnedKeyMap = narrowKeymap{}
+
 func TestInit(t *testing.T) {
 	t.Parallel()
 
@@ -162,6 +210,59 @@ func TestToggle_ViewShowsFullHelp(t *testing.T) {
 	assert.Contains(t, content, "help")
 	assert.Contains(t, content, "up")
 	assert.Contains(t, content, "down")
+}
+
+func TestCompact_PinnedRightAligned(t *testing.T) {
+	t.Parallel()
+
+	m := helpbar.New(theme.Default())
+	m, _ = m.Update(tea.WindowSizeMsg{Width: 100})
+	m, _ = m.Update(msgs.BindingsMsg{Keymap: pinnedKeymap{}})
+	content := m.View().Content
+
+	assert.Contains(t, content, "toggle wrap")
+	assert.Contains(t, content, "toggle help")
+	assert.Contains(t, content, "quit")
+}
+
+func TestCompact_PinnedNeverTruncated(t *testing.T) {
+	t.Parallel()
+
+	m := helpbar.New(theme.Default())
+	// Narrow width that only fits pinned
+	m, _ = m.Update(tea.WindowSizeMsg{Width: 30})
+	m, _ = m.Update(msgs.BindingsMsg{Keymap: narrowKeymap{}})
+	content := m.View().Content
+
+	assert.Contains(t, content, "quit",
+		"pinned bindings should be visible even at narrow width")
+}
+
+func TestCompact_BackwardsCompat(t *testing.T) {
+	t.Parallel()
+
+	m := helpbar.New(theme.Default())
+	m, _ = m.Update(tea.WindowSizeMsg{Width: 100})
+	m, _ = m.Update(msgs.BindingsMsg{Keymap: testKeymap{}})
+	content := m.View().Content
+
+	assert.Contains(t, content, "quit",
+		"non-PinnedKeyMap keymap should still render bindings")
+}
+
+func TestCompact_EllipsisOnOverflow(t *testing.T) {
+	t.Parallel()
+
+	m := helpbar.New(theme.Default())
+	// Very narrow width
+	m, _ = m.Update(tea.WindowSizeMsg{Width: 15})
+	m, _ = m.Update(msgs.BindingsMsg{Keymap: pinnedKeymap{}})
+	content := m.View().Content
+
+	assert.Contains(t, content, "quit",
+		"pinned quit should be visible")
+	assert.Contains(t, content, "toggle help",
+		"pinned help toggle should be visible")
 }
 
 func TestUpdate(t *testing.T) {
