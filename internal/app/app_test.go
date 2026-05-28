@@ -123,7 +123,7 @@ func TestUpdateFileRemoved(t *testing.T) {
 		require.NoError(t, cleanup())
 	}()
 
-	msg := msgs.FileRemoved{File: "compose.yaml"}
+	msg := msgs.FileRemoved{File: testComposeFile}
 	result, cmd := m.Update(msg)
 	require.NotNil(t, result)
 	require.NotNil(t, cmd)
@@ -152,6 +152,80 @@ func TestUpdateFileRemoved(t *testing.T) {
 
 	assert.True(t, foundTopbar, "expected TopbarContext in BatchMsg")
 	assert.True(t, foundBindings, "expected BindingsMsg in BatchMsg")
+}
+
+func TestWatchingKeymapPinnedHelp(t *testing.T) {
+	t.Parallel()
+
+	m, cleanup, _, _ := newModel(t)
+	defer func() { require.NoError(t, cleanup()) }()
+
+	_, cmd := m.Update(msgs.FileRemoved{File: testComposeFile})
+	require.NotNil(t, cmd)
+
+	batch, ok := cmd().(tea.BatchMsg)
+	require.True(t, ok)
+
+	bindMsg, found := extractBindingsMsgFromBatch(t, batch)
+	require.True(t, found)
+
+	km, ok := bindMsg.Keymap.(interface {
+		PinnedHelp() []key.Binding
+	})
+	require.True(t, ok, "keymap should implement PinnedHelp")
+
+	pinned := km.PinnedHelp()
+	require.Len(t, pinned, 2)
+	assert.Equal(t, "?", pinned[0].Help().Key)
+	assert.Equal(t, "toggle help", pinned[0].Help().Desc)
+	assert.Equal(t, "q", pinned[1].Help().Key)
+	assert.Equal(t, "quit", pinned[1].Help().Desc)
+}
+
+func TestWatchingKeymapShortHelpEmpty(t *testing.T) {
+	t.Parallel()
+
+	m, cleanup, _, _ := newModel(t)
+	defer func() { require.NoError(t, cleanup()) }()
+
+	_, cmd := m.Update(msgs.FileRemoved{File: testComposeFile})
+	require.NotNil(t, cmd)
+
+	batch, ok := cmd().(tea.BatchMsg)
+	require.True(t, ok)
+
+	bindMsg, found := extractBindingsMsgFromBatch(t, batch)
+	require.True(t, found)
+
+	bindings := bindMsg.Keymap.ShortHelp()
+	assert.Empty(t, bindings)
+}
+
+func TestWatchingKeymapFullHelp(t *testing.T) {
+	t.Parallel()
+
+	m, cleanup, _, _ := newModel(t)
+	defer func() { require.NoError(t, cleanup()) }()
+
+	_, cmd := m.Update(msgs.FileRemoved{File: testComposeFile})
+	require.NotNil(t, cmd)
+
+	batch, ok := cmd().(tea.BatchMsg)
+	require.True(t, ok)
+
+	bindMsg, found := extractBindingsMsgFromBatch(t, batch)
+	require.True(t, found)
+
+	fullHelp := bindMsg.Keymap.FullHelp()
+	require.Len(t, fullHelp, 1)
+
+	col := fullHelp[0]
+	assert.Equal(t, "?", col[0].Help().Key)
+	assert.Equal(t, "toggle help", col[0].Help().Desc)
+	assert.Equal(t, "q", col[1].Help().Key)
+	assert.Equal(t, "quit", col[1].Help().Desc)
+	assert.Equal(t, "f1", col[2].Help().Key)
+	assert.Equal(t, "about", col[2].Help().Desc)
 }
 
 func TestUpdateFileAvailabilityChangedDuringDashboard(t *testing.T) {
@@ -726,6 +800,20 @@ func TestUpdateMouseClick(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Helper: extractBindingsMsgFromBatch unwraps a BatchMsg to find the first
+// BindingsMsg. Returns the message and true if found.
+func extractBindingsMsgFromBatch(t *testing.T, batch tea.BatchMsg) (msgs.BindingsMsg, bool) {
+	t.Helper()
+
+	for _, entry := range batch {
+		if bm, ok := entry().(msgs.BindingsMsg); ok {
+			return bm, true
+		}
+	}
+
+	return msgs.BindingsMsg{}, false
 }
 
 // Helper: extractThemeChanged unwraps a single message or batch message to
