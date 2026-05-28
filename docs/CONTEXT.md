@@ -66,7 +66,7 @@ _Avoid_: Logs pane, detail pane, right pane
 
 **Selected Service**:
 The Service whose Service Layer is currently on top of the compositor stack.
-_Avoid_: Active service, focused service
+_Avoid_: Active service, focussed service
 
 **Log Stream**:
 The live, tailing output of a Selected Service's logs, streamed in real time from Docker.
