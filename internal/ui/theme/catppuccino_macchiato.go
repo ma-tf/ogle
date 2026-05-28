@@ -73,6 +73,8 @@ func CatppuccinoMacchiato() *Theme {
 		TopbarStatusText:               macchiatoWhite,
 		TopbarDisconnectedBackground:   macchiatoRed,
 		TopbarRetryBackground:          macchiatoPeach,
+		TopbarWrapBackground:           macchiatoGreen,
+		TopbarTruncBackground:          macchiatoYellow,
 		CarouselFocused:                macchiatoSubtext0,
 		CarouselBlurred:                macchiatoOverlay0,
 		CarouselBackground:             macchiatoCrust,

@@ -1,3 +1,4 @@
+//nolint:goconst // test fixture strings repeat across many test cases
 package topbar_test
 
 import (
@@ -57,6 +58,14 @@ func TestUpdate(t *testing.T) { //nolint:funlen // long table-driven test
 		{
 			name: "TopbarContext produces no command",
 			msg:  msgs.TopbarContext{Phase: "dashboard", File: "docker-compose.yml"},
+		},
+		{
+			name: "LogWrapStatus wrap on produces no command",
+			msg:  msgs.LogWrapStatus{On: true, Overflow: false},
+		},
+		{
+			name: "LogWrapStatus overflow on produces no command",
+			msg:  msgs.LogWrapStatus{On: false, Overflow: true},
 		},
 		{
 			name:      "DaemonConnected schedules poll command",
@@ -168,6 +177,7 @@ func TestUpdate(t *testing.T) { //nolint:funlen // long table-driven test
 	}
 }
 
+//nolint:funlen,goconst // long test with many table-driven cases
 func TestView(t *testing.T) {
 	t.Parallel()
 
@@ -229,6 +239,67 @@ func TestView(t *testing.T) {
 				return m
 			},
 			expectedResult: "DISCONNECTED",
+		},
+		{
+			name: "selected service name shown after arrow in dashboard phase",
+			setup: func(m topbar.Model) topbar.Model {
+				m, _ = m.Update(
+					msgs.TopbarContext{Phase: "dashboard", File: "compose.yaml", Service: "api"},
+				)
+
+				return m
+			},
+			expectedResult: "compose.yaml → api",
+		},
+		{
+			name: "no arrow when service name is empty",
+			setup: func(m topbar.Model) topbar.Model {
+				m, _ = m.Update(msgs.TopbarContext{Phase: "dashboard", File: "compose.yaml"})
+
+				return m
+			},
+			expectedResult: "compose.yaml",
+			assert: func(t *testing.T, m topbar.Model) {
+				t.Helper()
+				assert.NotContains(t, m.View().Content, "→")
+			},
+		},
+		{
+			name: "WRAP badge shown when wrapping is ON",
+			setup: func(m topbar.Model) topbar.Model {
+				m, _ = m.Update(msgs.TopbarContext{Phase: "dashboard", File: "compose.yaml"})
+				m, _ = m.Update(msgs.LogWrapStatus{On: true, Overflow: false})
+
+				return m
+			},
+			expectedResult: "WRAP",
+		},
+		{
+			name: "badge not shown when wrapping OFF and no overflow",
+			setup: func(m topbar.Model) topbar.Model {
+				m, _ = m.Update(msgs.TopbarContext{Phase: "dashboard", File: "compose.yaml"})
+				m, _ = m.Update(msgs.LogWrapStatus{On: false, Overflow: false})
+
+				return m
+			},
+			expectedResult: "compose.yaml",
+			assert: func(t *testing.T, m topbar.Model) {
+				t.Helper()
+
+				view := m.View().Content
+				assert.NotContains(t, view, "WRAP")
+				assert.NotContains(t, view, ">>")
+			},
+		},
+		{
+			name: "truncation badge shown when overflow and wrap OFF",
+			setup: func(m topbar.Model) topbar.Model {
+				m, _ = m.Update(msgs.TopbarContext{Phase: "dashboard", File: "compose.yaml"})
+				m, _ = m.Update(msgs.LogWrapStatus{On: false, Overflow: true})
+
+				return m
+			},
+			expectedResult: ">>",
 		},
 	}
 

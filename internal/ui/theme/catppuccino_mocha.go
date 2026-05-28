@@ -71,6 +71,8 @@ func CatppuccinoMocha() *Theme {
 		TopbarStatusText:               mochaWhite,
 		TopbarDisconnectedBackground:   mochaRed,
 		TopbarRetryBackground:          mochaPeach,
+		TopbarWrapBackground:           mochaGreen,
+		TopbarTruncBackground:          mochaYellow,
 		CarouselFocused:                mochaSubtext0,
 		CarouselBlurred:                mochaOverlay0,
 		CarouselBackground:             mochaCrust,

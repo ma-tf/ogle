@@ -69,6 +69,8 @@ type Theme struct {
 	TopbarStatusText               color.Color // daemon status text foreground
 	TopbarDisconnectedBackground   color.Color // red — "DISCONNECTED" badge
 	TopbarRetryBackground          color.Color // orange — "RECONNECTING" badge
+	TopbarWrapBackground           color.Color // green — "WRAP" badge background
+	TopbarTruncBackground          color.Color // amber — ">>" truncation badge background
 	LogPaneBackground              color.Color // log pane background fill
 	CarouselFocused                color.Color
 	CarouselBlurred                color.Color
@@ -121,6 +123,8 @@ type UserThemeFile struct {
 	TopbarStatusTextColor               string `yaml:"topbarStatusTextColor"`
 	TopbarDisconnectedBackgroundColor   string `yaml:"topbarDisconnectedBackgroundColor"`
 	TopbarRetryBackgroundColor          string `yaml:"topbarRetryBackgroundColor"`
+	TopbarWrapBackgroundColor           string `yaml:"topbarWrapBackgroundColor"`
+	TopbarTruncBackgroundColor          string `yaml:"topbarTruncBackgroundColor"`
 	CarouselFocusedColor                string `yaml:"carouselFocusedColor"`
 	CarouselBlurredColor                string `yaml:"carouselBlurredColor"`
 	CarouselBackgroundColor             string `yaml:"carouselBackgroundColor"`
@@ -271,6 +275,8 @@ func applyColorOverrides(result *Theme, f UserThemeFile) {
 		{field: f.TopbarStatusTextColor, dst: &result.TopbarStatusText},
 		{field: f.TopbarDisconnectedBackgroundColor, dst: &result.TopbarDisconnectedBackground},
 		{field: f.TopbarRetryBackgroundColor, dst: &result.TopbarRetryBackground},
+		{field: f.TopbarWrapBackgroundColor, dst: &result.TopbarWrapBackground},
+		{field: f.TopbarTruncBackgroundColor, dst: &result.TopbarTruncBackground},
 		{field: f.CarouselFocusedColor, dst: &result.CarouselFocused},
 		{field: f.CarouselBlurredColor, dst: &result.CarouselBlurred},
 		{field: f.CarouselBackgroundColor, dst: &result.CarouselBackground},

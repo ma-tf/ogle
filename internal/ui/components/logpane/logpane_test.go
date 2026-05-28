@@ -13,7 +13,10 @@ import (
 	"github.com/ma-tf/ogle/internal/ui/theme"
 )
 
-const clearSvcName = "test"
+const (
+	clearSvcName = "test"
+	longLine     = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+)
 
 //nolint:funlen,maintidx // long test with many table-driven cases
 func TestUpdate(t *testing.T) {
@@ -104,12 +107,10 @@ func TestUpdate(t *testing.T) {
 		},
 
 		{
-			name: "ToggleLogWrap toggles wrap and restores scroll position",
+			name: "ToggleLogWrap emits LogWrapStatus with On=true when wrap turned ON",
 			setup: func() logpane.Model {
 				ch := make(chan string, 1)
-
-				longLine := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-				ch <- longLine
+				ch <- "short line"
 
 				m := logpane.New(theme.Default(), 120, 100, 100, ch)
 				m, _ = m.Update(msgs.LogLinesAvailable{})
@@ -117,16 +118,39 @@ func TestUpdate(t *testing.T) {
 				return m
 			},
 			msg:         msgs.ToggleLogWrap{},
-			expectedMsg: nil,
-			check: func(t *testing.T, m logpane.Model) {
-				t.Helper()
+			expectedMsg: msgs.LogWrapStatus{On: true, Overflow: false},
+		},
 
-				v1 := m.View().Content
-				m2, cmd := m.Update(msgs.ToggleLogWrap{})
-				require.Nil(t, cmd)
+		{
+			name: "ToggleLogWrap emits LogWrapStatus with Overflow=true when OFF and lines overflow",
+			setup: func() logpane.Model {
+				ch := make(chan string, 1)
+				ch <- longLine
 
-				assert.NotEqual(t, v1, m2.View().Content)
+				m := logpane.New(theme.Default(), 120, 100, 100, ch)
+				m, _ = m.Update(msgs.LogLinesAvailable{})
+				m, _ = m.Update(msgs.ToggleLogWrap{})
+
+				return m
 			},
+			msg:         msgs.ToggleLogWrap{},
+			expectedMsg: msgs.LogWrapStatus{On: false, Overflow: true},
+		},
+
+		{
+			name: "ToggleLogWrap emits LogWrapStatus with Overflow=false when OFF and no overflow",
+			setup: func() logpane.Model {
+				ch := make(chan string, 1)
+				ch <- "short line"
+
+				m := logpane.New(theme.Default(), 120, 100, 100, ch)
+				m, _ = m.Update(msgs.LogLinesAvailable{})
+				m, _ = m.Update(msgs.ToggleLogWrap{})
+
+				return m
+			},
+			msg:         msgs.ToggleLogWrap{},
+			expectedMsg: msgs.LogWrapStatus{On: false, Overflow: false},
 		},
 
 		{
@@ -163,6 +187,32 @@ func TestUpdate(t *testing.T) {
 				assert.Contains(t, v, "line 19")
 				assert.NotContains(t, v, "line 0")
 			},
+		},
+
+		{
+			name: "LogLinesAvailable emits LogWrapStatus when overflow is detected",
+			setup: func() logpane.Model {
+				ch := make(chan string, 1)
+				ch <- longLine
+
+				return logpane.New(theme.Default(), 120, 100, 100, ch)
+			},
+			msg:         msgs.LogLinesAvailable{},
+			expectedMsg: msgs.LogWrapStatus{On: false, Overflow: true},
+		},
+
+		{
+			name: "LogLinesAvailable with wrap ON emits no LogWrapStatus",
+			setup: func() logpane.Model {
+				ch := make(chan string, 1)
+				ch <- longLine
+
+				m := logpane.New(theme.Default(), 120, 100, 100, ch)
+				m, _ = m.Update(msgs.ToggleLogWrap{})
+
+				return m
+			},
+			msg: msgs.LogLinesAvailable{},
 		},
 
 		{

@@ -445,9 +445,27 @@ func TestUpdate(t *testing.T) {
 		},
 		// --- ServiceSelected ---
 		{
-			name:      "ServiceSelected stores selected name",
-			msg:       msgs.ServiceSelected{ServiceName: "api"},
-			expectCmd: true,
+			name: "ServiceSelected emits TopbarContext with service name",
+			msg:  msgs.ServiceSelected{ServiceName: "api"},
+			check: func(t *testing.T, cmd tea.Cmd) {
+				t.Helper()
+				require.NotNil(t, cmd)
+				msg := cmd()
+
+				if batch, isBatch := msg.(tea.BatchMsg); isBatch {
+					for _, entry := range batch {
+						if tcMsg, isTC := entry().(msgs.TopbarContext); isTC {
+							assert.Equal(t, "api", tcMsg.Service)
+							assert.Equal(t, "dashboard", tcMsg.Phase)
+							assert.Equal(t, "compose.yaml", tcMsg.File)
+
+							return
+						}
+					}
+				}
+
+				t.Error("expected TopbarContext in batch")
+			},
 		},
 	}
 

@@ -38,18 +38,22 @@ const (
 	PhaseWatching
 )
 
-// Model holds top bar state: the active phase, project file, daemon connection
-// machine, spinner, theme, zone manager, and terminal width.
+// Model holds top bar state: the active phase, project file, selected service,
+// wrap/overflow status, daemon connection machine, spinner, theme, zone
+// manager, and terminal width.
 type Model struct {
-	phase       Phase
-	projectFile string
-	conn        *connection.Machine
-	docker      docker.Docker
-	spn         spinner.Model
-	th          *theme.Theme
-	zm          *zone.Manager
-	width       int
-	ctx         context.Context
+	phase           Phase
+	projectFile     string
+	selectedService string
+	wrapOn          bool
+	truncated       bool
+	conn            *connection.Machine
+	docker          docker.Docker
+	spn             spinner.Model
+	th              *theme.Theme
+	zm              *zone.Manager
+	width           int
+	ctx             context.Context
 }
 
 // New returns a Model in PhaseStartup with no project file.
@@ -61,15 +65,18 @@ func New(
 	zm *zone.Manager,
 ) Model {
 	return Model{
-		phase:       PhaseStartup,
-		projectFile: "",
-		ctx:         ctx,
-		conn:        conn,
-		docker:      d,
-		spn:         spinner.New(spinner.WithSpinner(spinner.MiniDot)),
-		th:          th,
-		zm:          zm,
-		width:       0,
+		phase:           PhaseStartup,
+		projectFile:     "",
+		selectedService: "",
+		wrapOn:          false,
+		truncated:       false,
+		ctx:             ctx,
+		conn:            conn,
+		docker:          d,
+		spn:             spinner.New(spinner.WithSpinner(spinner.MiniDot)),
+		th:              th,
+		zm:              zm,
+		width:           0,
 	}
 }
 
@@ -104,6 +111,11 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 
 		m.projectFile = msg.File
+		m.selectedService = msg.Service
+
+	case msgs.LogWrapStatus:
+		m.wrapOn = msg.On
+		m.truncated = msg.Overflow
 
 	case theme.Changed:
 		m.th = msg.Theme
@@ -157,6 +169,10 @@ func (m Model) contextText() string {
 	case PhaseStartup:
 		return "scanning for compose files"
 	case PhaseDashboard:
+		if m.selectedService != "" {
+			return m.projectFile + " → " + m.selectedService
+		}
+
 		return m.projectFile
 	case PhaseWatching:
 		return "disconnected"
@@ -202,8 +218,27 @@ func (m Model) renderDaemonStatus() string {
 	}
 }
 
+func (m Model) renderBadge() string {
+	if m.wrapOn {
+		return lipgloss.NewStyle().
+			Foreground(m.th.TopbarStatusText).
+			Background(m.th.TopbarWrapBackground).
+			Render(" WRAP ") + " "
+	}
+
+	if m.truncated {
+		return lipgloss.NewStyle().
+			Foreground(m.th.TopbarStatusText).
+			Background(m.th.TopbarTruncBackground).
+			Render(" >> ") + " "
+	}
+
+	return ""
+}
+
 // View renders the top bar: clickable "ogle" brand + phase context on the left,
-// Docker daemon status on the right, right-aligned via padding.
+// wrap/truncation badges (optional), Docker daemon status on the right, all
+// right-aligned via padding.
 func (m Model) View() tea.View {
 	bg := m.th.TopbarBackground
 	brandStyle := lipgloss.NewStyle().
@@ -216,13 +251,15 @@ func (m Model) View() tea.View {
 	spacerStyle := lipgloss.NewStyle().Background(bg)
 
 	left := brand + contextStyle.Render("  "+m.contextText())
+	badge := m.renderBadge()
 	right := m.renderDaemonStatus()
 
 	leftW := lipgloss.Width(left)
+	badgeW := lipgloss.Width(badge)
 	rightW := lipgloss.Width(right)
-	pad := max(m.width-leftW-rightW, 0)
+	pad := max(m.width-leftW-badgeW-rightW, 0)
 
-	return tea.NewView(left + spacerStyle.Render(strings.Repeat(" ", pad)) + right)
+	return tea.NewView(left + spacerStyle.Render(strings.Repeat(" ", pad)) + badge + right)
 }
 
 func daemonTickCmd() tea.Cmd {

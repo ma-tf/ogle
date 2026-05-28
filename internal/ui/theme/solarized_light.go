@@ -38,6 +38,8 @@ func SolarizedLight() *Theme {
 		TopbarStatusText:               solarizedWhite,
 		TopbarDisconnectedBackground:   solarizedRed,
 		TopbarRetryBackground:          solarizedOrange,
+		TopbarWrapBackground:           solarizedGreen,
+		TopbarTruncBackground:          solarizedYellow,
 		CarouselFocused:                solarizedBase01,
 		CarouselBlurred:                solarizedBase1,
 		CarouselBackground:             solarizedBase3,
