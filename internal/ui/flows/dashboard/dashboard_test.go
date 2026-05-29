@@ -93,23 +93,21 @@ func TestInit(t *testing.T) {
 // TestUpdate
 // ---------------------------------------------------------------------------
 
-//nolint:funlen,maintidx,gocognit // long test with many table-driven cases
-func TestUpdate(t *testing.T) {
-	t.Parallel()
+type updateTestCase struct {
+	name string
+	// arrange
+	setup func(dashboard.Model, *dockermocks.MockDocker, *parsermocks.MockParser) dashboard.Model
+	// act
+	msg tea.Msg
+	// assert
+	expectedMsg tea.Msg
+	expectCmd   bool
+	check       func(*testing.T, tea.Cmd)
+}
 
-	type testCase struct {
-		name string
-		// arrange
-		setup func(dashboard.Model, *dockermocks.MockDocker, *parsermocks.MockParser) dashboard.Model
-		// act
-		msg tea.Msg
-		// assert
-		expectedMsg tea.Msg
-		expectCmd   bool
-		check       func(*testing.T, tea.Cmd)
-	}
-
-	cases := []testCase{
+//nolint:funlen,maintidx,gocognit // table-driven test cases with inline setup/check closures
+func buildUpdateTestCases() []updateTestCase {
+	return []updateTestCase{
 		// --- keyboard: quit ---
 		{
 			name:        "key q produces tea.QuitMsg",
@@ -577,8 +575,12 @@ func TestUpdate(t *testing.T) {
 			},
 		},
 	}
+}
 
-	for _, tc := range cases {
+func TestUpdate(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range buildUpdateTestCases() {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
