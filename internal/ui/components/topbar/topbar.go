@@ -190,13 +190,13 @@ func (m Model) renderDaemonStatus() string {
 		return lipgloss.NewStyle().
 			Foreground(m.th.TopbarStatusText).
 			Background(m.th.TopbarRetryBackground).
-			Render("🐳 ○ RECONNECTING " + m.spn.View())
+			Render(" 🐳 ○ RECONNECTING " + m.spn.View() + " ")
 
 	case connection.ConnectStateConnected:
 		return lipgloss.NewStyle().
 			Foreground(m.th.TopbarStatusText).
 			Background(m.th.StateRunning).
-			Render("🐳 ● LIVE")
+			Render(" 🐳 ● LIVE ")
 
 	case connection.ConnectStateUnavailable:
 		secs := int(math.Ceil(m.conn.Remaining().Seconds()))
@@ -209,11 +209,11 @@ func (m Model) renderDaemonStatus() string {
 		label := lipgloss.NewStyle().
 			Foreground(m.th.TopbarStatusText).
 			Background(m.th.TopbarDisconnectedBackground).
-			Render("🐳 ○ DISCONNECTED")
+			Render(" 🐳 ○ DISCONNECTED")
 		counter := lipgloss.NewStyle().
 			Foreground(m.th.TopbarStatusText).
 			Background(m.th.TopbarDisconnectedBackground).
-			Render(" " + countdown)
+			Render(" " + countdown + " ")
 
 		return label + counter
 	default:
@@ -226,14 +226,14 @@ func (m Model) renderBadge() string {
 		return lipgloss.NewStyle().
 			Foreground(m.th.TopbarStatusText).
 			Background(m.th.TopbarWrapBackground).
-			Render(" WRAP ") + " "
+			Render(" WRAP ")
 	}
 
 	if m.truncated {
 		return lipgloss.NewStyle().
 			Foreground(m.th.TopbarStatusText).
 			Background(m.th.TopbarTruncBackground).
-			Render(" >> ") + " "
+			Render(" >> ")
 	}
 
 	return ""
@@ -248,7 +248,7 @@ func (m Model) View() tea.View {
 		Foreground(m.th.TopbarBrandText).
 		Background(m.th.TopbarBrandBackground)
 
-	brand := m.zm.Mark(BrandZone, brandStyle.Render("ogle"))
+	brand := m.zm.Mark(BrandZone, brandStyle.Render(" ogle "))
 
 	contextStyle := lipgloss.NewStyle().Foreground(m.th.TopbarContextText).Background(bg)
 	spacerStyle := lipgloss.NewStyle().Background(bg)
