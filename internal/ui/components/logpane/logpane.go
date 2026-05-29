@@ -261,6 +261,11 @@ func (m Model) overflowCmd(trimmed bool) (Model, tea.Cmd) {
 // realLineIndex returns the real-line index corresponding to the given virtual
 // YOffset, accounting for soft wrapping. Mirrors the viewport's internal
 // calculateLine logic for precise scroll restoration on wrap toggle.
+//
+// Validated against charm.land/bubbles/v2 v2.1.0. If the viewport library
+// changes its wrap calculation, this function silently diverges, causing
+// scroll position corruption on wrap toggle. Consider upstreaming a public
+// API for this calculation.
 func (m Model) realLineIndex(yOffset int) int {
 	if len(m.lines) == 0 {
 		return 0
