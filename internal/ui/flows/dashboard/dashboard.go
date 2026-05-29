@@ -172,15 +172,12 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			return msgs.ReportWrapStatus(msg)
 		}
 
-		if m.runtimeData != nil {
-			if rt, ok := m.runtimeData[msg.ServiceName]; ok && rt.ContainerID != "" {
-				inspectCmd = m.docker.Inspect(m.ctx, rt.ContainerID)
-			}
-		}
+		inspectCmd = m.inspectSelected()
 
 	case msgs.ServicesPolled:
 		if msg.Err == nil {
 			m.runtimeData = msg.Runtimes
+			inspectCmd = m.inspectSelected()
 		}
 
 	case msgs.FrameHeight:
@@ -336,6 +333,20 @@ func (m Model) handleFileAvailabilityChanged(files []string) (Model, tea.Cmd) {
 	newDash := New(m.ctx, p, m.th, m.cfg, m.zm, m.configDir, m.w, m.h, m.docker, m.parser)
 
 	return newDash, newDash.Init()
+}
+
+// inspectSelected returns a Cmd that fetches container labels for the
+// currently selected service if runtime data and a container ID are available.
+func (m Model) inspectSelected() tea.Cmd {
+	if m.runtimeData == nil {
+		return nil
+	}
+
+	if rt, ok := m.runtimeData[m.selectedName]; ok && rt.ContainerID != "" {
+		return m.docker.Inspect(m.ctx, rt.ContainerID)
+	}
+
+	return nil
 }
 
 // View renders the service list and inspector side by side. When settings is

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 
 	tea "charm.land/bubbletea/v2"
 
@@ -13,8 +12,7 @@ import (
 )
 
 const (
-	ogleLabelPrefix = "ogle."
-	inspectPath     = "http://localhost/containers/%s/json"
+	inspectPath = "http://localhost/containers/%s/json"
 )
 
 // inspectResponse maps the relevant part of the Docker Engine API
@@ -26,7 +24,7 @@ type inspectResponse struct {
 }
 
 // Inspect returns a Cmd that fetches container metadata via the Docker Engine
-// API and returns ogle.* labels via ContainerLabelsPolled.
+// API and returns container labels via ContainerLabelsPolled.
 func (s *Service) Inspect(ctx context.Context, containerID string) tea.Cmd {
 	return func() tea.Msg {
 		path := fmt.Sprintf(inspectPath, containerID)
@@ -63,29 +61,8 @@ func (s *Service) Inspect(ctx context.Context, containerID string) tea.Cmd {
 			}
 		}
 
-		labels := filterOgleLabels(data.Config.Labels)
+		labels := data.Config.Labels
 
 		return msgs.ContainerLabelsPolled{Labels: labels, Err: nil}
 	}
-}
-
-// filterOgleLabels returns only labels with the ogle.* prefix.
-func filterOgleLabels(all map[string]string) map[string]string {
-	if len(all) == 0 {
-		return nil
-	}
-
-	result := make(map[string]string)
-
-	for k, v := range all {
-		if strings.HasPrefix(k, ogleLabelPrefix) {
-			result[k] = v
-		}
-	}
-
-	if len(result) == 0 {
-		return nil
-	}
-
-	return result
 }

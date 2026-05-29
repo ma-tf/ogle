@@ -489,18 +489,12 @@ func TestUpdate(t *testing.T) {
 				t.Error("expected ReportWrapStatus in batch")
 			},
 		},
-		// --- labels: ServiceSelected with runtime triggers Inspect ---
+		// --- labels: ServicesPolled triggers Inspect for selected service ---
 		{
-			name: "ServiceSelected with runtime data triggers Inspect",
+			name: "ServicesPolled triggers Inspect for selected service",
 			setup: func(
 				m dashboard.Model, mockD *dockermocks.MockDocker, _ *parsermocks.MockParser,
 			) dashboard.Model {
-				m, _ = m.Update(msgs.ServicesPolled{
-					Runtimes: map[string]*domain.ServiceRuntimeData{
-						svcWeb: {ContainerID: "abc123", State: domain.ServiceStateRunning},
-					},
-				})
-
 				mockD.EXPECT().Inspect(mock.Anything, "abc123").
 					Return(tea.Cmd(func() tea.Msg {
 						return msgs.ContainerLabelsPolled{
@@ -510,7 +504,11 @@ func TestUpdate(t *testing.T) {
 
 				return m
 			},
-			msg: msgs.ServiceSelected{ServiceName: svcWeb},
+			msg: msgs.ServicesPolled{
+				Runtimes: map[string]*domain.ServiceRuntimeData{
+					svcWeb: {ContainerID: "abc123", State: domain.ServiceStateRunning},
+				},
+			},
 			check: func(t *testing.T, cmd tea.Cmd) {
 				t.Helper()
 				require.NotNil(t, cmd)

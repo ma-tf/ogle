@@ -211,7 +211,7 @@ func TestInspectLabels(t *testing.T) {
 
 	tt := []testCase{
 		{
-			name: "returns ogle labels from container inspect",
+			name: "returns all labels from container inspect",
 			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusOK)
 				_, _ = w.Write([]byte(`{
@@ -225,12 +225,13 @@ func TestInspectLabels(t *testing.T) {
 				}`))
 			},
 			expectedLabels: map[string]string{
-				"ogle.foo":         "bar",
-				"ogle.environment": "production",
+				"ogle.foo":                   "bar",
+				"ogle.environment":           "production",
+				"com.docker.compose.project": "myproject",
 			},
 		},
 		{
-			name: "no ogle labels returns nil",
+			name: "non-ogle labels are returned",
 			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusOK)
 				_, _ = w.Write([]byte(`{
@@ -241,15 +242,17 @@ func TestInspectLabels(t *testing.T) {
 					}
 				}`))
 			},
-			expectedLabels: nil,
+			expectedLabels: map[string]string{
+				"com.docker.compose.project": "myproject",
+			},
 		},
 		{
-			name: "empty labels returns nil",
+			name: "empty labels returns empty map",
 			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusOK)
 				_, _ = w.Write([]byte(`{"config": {"labels": {}}}`))
 			},
-			expectedLabels: nil,
+			expectedLabels: map[string]string{},
 		},
 		{
 			name: "nil labels returns nil",
