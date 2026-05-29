@@ -107,19 +107,20 @@ path directly.
 
 ```text
 app.Update(msg)
-├── msgs.ProjectLoaded           → transition startup → dashboard
+├── msgs.ProjectLoaded           → transition startup → dashboard, emit msgs.FrameHeight, msgs.TopbarContext
 ├── msgs.FileAvailabilityChanged → re-subscribe watcher, dispatch to startup or dashboard
-├── msgs.FileRemoved             → transition to PhaseWatching, emit TopbarContext
-├── msgs.DisplayError            → forward to statusbar (auto-clear after 3s)
-├── msgs.DisplayStatus           → forward to statusbar (auto-clear after 3s)
-├── msgs.ClearStatusMsg          → forward to statusbar
+├── msgs.FileRemoved             → transition to PhaseWatching, emit msgs.TopbarContext, msgs.FrameHeight, msgs.BindingsMsg(watching keymap)
+├── msgs.DisplayError            → forward to statusbar (auto-clear after 3s), emit msgs.FrameHeight
+├── msgs.DisplayStatus           → forward to statusbar (auto-clear after 3s), emit msgs.FrameHeight
+├── msgs.ClearStatusMsg          → forward to statusbar, emit msgs.FrameHeight
 ├── tea.WindowSizeMsg            → forward to active sub-model
 ├── theme.Changed                → update pointer, forward to active sub-model
 ├── msgs.SettingsApplied         → load theme, update config, save config, emit theme.Changed (not forwarded)
-├── tea.KeyPressMsg              → handleKeyPress (help toggle ?, about overlay F1/esc/q, quit, profile)
+├── msgs.BindingsMsg             → store keymap for computeFrameHeight
+├── tea.KeyPressMsg              → handleKeyPress (help toggle → emit msgs.FrameHeight, about overlay F1/esc/q, quit, profile)
 ├── tea.MouseClickMsg            → handleMouseClick (brand zone → about overlay)
 ├── msgs.AboutVisibilityChanged  → track showingAbout flag
-└── other msgs                   → forward to active sub-model
+└── other msgs                   → forward to active sub-model (emits msgs.FrameHeight when chrome height changes)
 ```
 
 ---
@@ -228,11 +229,12 @@ msg that triggers `app` to transition to `PhaseWatching`
 | `ToggleLogWrap`                  | `dashboard` (keybinding)        | `logpane`                                   |
 | `LogWrapStatus{On,Overflow,ServiceName}` | `logpane` (via `servicehost`) | `topbar` (filters by active service)        |
 | `ClearLogBuffer{ServiceName}`    | `dashboard` (keybinding `c`)    | `logpane` (clears lines, drains chan, resets viewport), `servicehost` (routes by name) |
-| `BindingsMsg{Keymap}`            | various flows                   | `helpbar`                                   |
+| `BindingsMsg{Keymap}`            | various flows                   | `app` (stores keymap for `computeFrameHeight`), `helpbar`           |
 | `DisplayError{Err}`              | any component                   | `statusbar` (auto-clear after 3s)           |
 | `DisplayStatus{Msg}`             | any component                   | `statusbar` (auto-clear after 3s)           |
 | `ClearStatusMsg{}`               | `statusbar` (timer)             | `statusbar`                                 |
 | `theme.Changed`                  | external (theme switcher)       | all components with theme pointer           |
+| `FrameHeight{Height}`            | `app` (on status bar activation, help toggle, project load, file removal) | `logpane`, `dashboard` |
 
 ---
 
@@ -297,6 +299,15 @@ Custom theme overrides in `UserThemeFile` support 6 about-specific YAML fields:
 | `aboutTextColor` | `Theme.AboutTextColor` | Version line foreground |
 | `aboutLinkColor` | `Theme.AboutLinkColor` | URL hyperlink foreground |
 | `aboutHintColor` | `Theme.AboutHintColor` | Close hint foreground |
+
+`UserThemeFile` additionally supports 4 help bar-specific YAML fields:
+
+| YAML field | Maps to | Description |
+|------------|---------|-------------|
+| `helpKeyColor` | `Theme.HelpKey` | Key binding label foreground (e.g. "ctrl+c") |
+| `helpDescColor` | `Theme.HelpDesc` | Key binding description foreground (e.g. "quit") |
+| `helpSepColor` | `Theme.HelpSep` | Separator and ellipsis foreground |
+| `helpBackgroundColor` | `Theme.HelpBackground` | Full-width background fill behind the help bar |
 
 ## Help Toggle
 
