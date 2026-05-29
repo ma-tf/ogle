@@ -70,12 +70,22 @@ func (m Model) View() tea.View {
 		content = m.renderCompact()
 	}
 
-	rendered := lipgloss.NewStyle().
-		Background(m.th.HelpBackground).
-		Width(m.width).
-		Render(content)
+	if content == "" {
+		return tea.NewView("")
+	}
 
-	return tea.NewView(rendered)
+	bg := m.th.HelpBackground
+
+	lines := strings.Split(content, "\n")
+	for i, line := range lines {
+		w := lipgloss.Width(line)
+		if w < m.width {
+			pad := m.width - w
+			lines[i] = line + lipgloss.NewStyle().Background(bg).Render(strings.Repeat(" ", pad))
+		}
+	}
+
+	return tea.NewView(strings.Join(lines, "\n"))
 }
 
 func (m Model) renderCompact() string {
@@ -101,18 +111,28 @@ func (m Model) renderCompact() string {
 		}
 	}
 
-	pinnedText := renderBindings(pinned, m.th)
+	bg := m.th.HelpBackground
+	keyStyle := m.th.HelpKey.Background(bg)
+	descStyle := m.th.HelpDesc.Background(bg)
+	sepStyle := m.th.HelpSep.Background(bg)
+
+	pinnedText := renderBindings(pinned, keyStyle, descStyle, sepStyle)
 	pinnedWidth := lipgloss.Width(pinnedText)
 
 	gap := 2
 	availWidth := m.width - pinnedWidth - gap
 
-	truncText := renderTruncatable(truncatable, m.th, availWidth)
+	truncText := renderTruncatable(truncatable, keyStyle, descStyle, sepStyle, availWidth)
 	truncWidth := lipgloss.Width(truncText)
 
 	fill := max(0, m.width-truncWidth-pinnedWidth)
 
-	return truncText + strings.Repeat(" ", fill) + pinnedText
+	if fill > 0 {
+		fillStyle := lipgloss.NewStyle().Background(bg)
+		truncText += fillStyle.Render(strings.Repeat(" ", fill))
+	}
+
+	return truncText + pinnedText
 }
 
 func (m Model) renderFull() string {
@@ -122,7 +142,38 @@ func (m Model) renderFull() string {
 		return ""
 	}
 
-	maxKeyWidths := make([]int, len(fullHelp))
+	bg := m.th.HelpBackground
+	keyStyle := m.th.HelpKey.Background(bg)
+	descStyle := m.th.HelpDesc.Background(bg)
+	sepStyle := m.th.HelpSep.Background(bg)
+	padStyle := lipgloss.NewStyle().Background(bg)
+
+	cells, colWidths, maxRows := buildHelpCells(fullHelp, keyStyle, descStyle)
+
+	if len(fullHelp) == 1 {
+		for ri, cell := range cells[0] {
+			if w := lipgloss.Width(cell); w < colWidths[0] {
+				cells[0][ri] = cell + padStyle.Render(strings.Repeat(" ", colWidths[0]-w))
+			}
+		}
+
+		return strings.Join(cells[0], "\n")
+	}
+
+	sep := sepStyle.Render("  ")
+
+	return assembleHelpRows(cells, colWidths, maxRows, padStyle, sep)
+}
+
+func buildHelpCells(
+	fullHelp [][]key.Binding,
+	keyStyle, descStyle lipgloss.Style,
+) ([][]string, []int, int) {
+	numCols := len(fullHelp)
+	maxKeyWidths := make([]int, numCols)
+	colWidths := make([]int, numCols)
+	cells := make([][]string, numCols)
+	maxRows := 0
 
 	for ci, col := range fullHelp {
 		for _, b := range col {
@@ -132,32 +183,64 @@ func (m Model) renderFull() string {
 		}
 	}
 
-	var columns []string
-
 	for ci, col := range fullHelp {
-		var lines []string
+		cells[ci] = make([]string, len(col))
 
-		for _, b := range col {
+		for ri, b := range col {
 			k := b.Help().Key + strings.Repeat(" ", maxKeyWidths[ci]-lipgloss.Width(b.Help().Key))
-			line := m.th.HelpKey.Render(k) + m.th.HelpDesc.Render(" "+b.Help().Desc)
+			cell := keyStyle.Render(k) + descStyle.Render(" "+b.Help().Desc)
+			cells[ci][ri] = cell
 
-			lines = append(lines, line)
+			if w := lipgloss.Width(cell); w > colWidths[ci] {
+				colWidths[ci] = w
+			}
 		}
 
-		columns = append(columns, lipgloss.JoinVertical(lipgloss.Top, lines...))
+		if len(col) > maxRows {
+			maxRows = len(col)
+		}
 	}
 
-	if len(columns) < 2 { //nolint:mnd // guard for single-column FullHelp
-		return columns[0]
-	}
-
-	sep := m.th.HelpSep.Render("  ")
-
-	return lipgloss.JoinHorizontal(lipgloss.Top, columns[0], sep,
-		strings.Join(columns[1:], sep))
+	return cells, colWidths, maxRows
 }
 
-func renderBindings(bindings []key.Binding, th *theme.Theme) string {
+func assembleHelpRows(
+	cells [][]string,
+	colWidths []int,
+	maxRows int,
+	padStyle lipgloss.Style,
+	sep string,
+) string {
+	rows := make([]string, 0, maxRows)
+
+	for ri := range maxRows {
+		var sb strings.Builder
+
+		for ci := range cells {
+			if ci > 0 {
+				sb.WriteString(sep)
+			}
+
+			if ri < len(cells[ci]) {
+				cell := cells[ci][ri]
+
+				if w := lipgloss.Width(cell); w < colWidths[ci] {
+					cell += padStyle.Render(strings.Repeat(" ", colWidths[ci]-w))
+				}
+
+				sb.WriteString(cell)
+			} else {
+				sb.WriteString(padStyle.Render(strings.Repeat(" ", colWidths[ci])))
+			}
+		}
+
+		rows = append(rows, sb.String())
+	}
+
+	return strings.Join(rows, "\n")
+}
+
+func renderBindings(bindings []key.Binding, keyStyle, descStyle, sepStyle lipgloss.Style) string {
 	if len(bindings) == 0 {
 		return ""
 	}
@@ -165,30 +248,34 @@ func renderBindings(bindings []key.Binding, th *theme.Theme) string {
 	var parts []string
 
 	for idx, b := range bindings {
-		parts = append(parts, th.HelpKey.Render(b.Help().Key)+th.HelpDesc.Render(" "+b.Help().Desc))
+		parts = append(parts, keyStyle.Render(b.Help().Key)+descStyle.Render(" "+b.Help().Desc))
 
 		if idx < len(bindings)-1 {
-			parts = append(parts, th.HelpSep.Render("  •  "))
+			parts = append(parts, sepStyle.Render("  •  "))
 		}
 	}
 
 	return strings.Join(parts, "")
 }
 
-func renderTruncatable(bindings []key.Binding, th *theme.Theme, maxWidth int) string {
+func renderTruncatable(
+	bindings []key.Binding,
+	keyStyle, descStyle, sepStyle lipgloss.Style,
+	maxWidth int,
+) string {
 	if maxWidth <= 0 || len(bindings) == 0 {
 		return ""
 	}
 
-	sep := th.HelpSep.Render("  •  ")
+	sep := sepStyle.Render("  •  ")
 	sepWidth := lipgloss.Width(sep)
-	ellipsis := th.HelpSep.Render("…")
+	ellipsis := sepStyle.Render("…")
 	ellipsisWidth := lipgloss.Width(ellipsis)
 
 	var parts []string
 
 	for _, b := range bindings {
-		rendered := th.HelpKey.Render(b.Help().Key) + th.HelpDesc.Render(" "+b.Help().Desc)
+		rendered := keyStyle.Render(b.Help().Key) + descStyle.Render(" "+b.Help().Desc)
 		itemWidth := lipgloss.Width(rendered)
 
 		var totalWidth int

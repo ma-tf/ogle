@@ -57,12 +57,12 @@ func (k appKeymap) FullHelp() [][]key.Binding {
 			carousel.KeyPgDown,
 			keyToggleWrap,
 			keyClearLog,
-			keySettings,
 		},
 		{
 			keyHelp,
-			keyQuit,
+			keySettings,
 			keyAbout,
+			keyQuit,
 		},
 	}
 }
