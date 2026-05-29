@@ -88,13 +88,18 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		return m.drainLines()
 
 	case msgs.ReportWrapStatus:
-		overflow := false
-		if !m.wrap {
-			overflow = m.hasOverflow()
+		if m.wrap {
+			return m, func() tea.Msg {
+				return msgs.LogWrapStatus{On: true, Overflow: false, ServiceName: msg.ServiceName}
+			}
 		}
 
+		m, _ = m.overflowCmd(false)
+
 		return m, func() tea.Msg {
-			return msgs.LogWrapStatus{On: m.wrap, Overflow: overflow, ServiceName: msg.ServiceName}
+			return msgs.LogWrapStatus{
+				On: false, Overflow: m.prevOverflow, ServiceName: msg.ServiceName,
+			}
 		}
 
 	case msgs.ToggleLogWrap:
@@ -115,15 +120,23 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.viewport.SetYOffset(realIdx)
 		}
 
-		overflow := false
-		if !m.wrap {
-			overflow = m.hasOverflow()
+		if m.wrap {
+			m.prevOverflow = false
+
+			return m, func() tea.Msg {
+				return msgs.LogWrapStatus{On: true, Overflow: false, ServiceName: ""}
+			}
 		}
 
-		m.prevOverflow = overflow
+		var cmd tea.Cmd
+
+		m, cmd = m.overflowCmd(false)
+		if cmd != nil {
+			return m, cmd
+		}
 
 		return m, func() tea.Msg {
-			return msgs.LogWrapStatus{On: m.wrap, Overflow: overflow, ServiceName: ""}
+			return msgs.LogWrapStatus{On: false, Overflow: m.prevOverflow, ServiceName: ""}
 		}
 
 	case msgs.ClearLogBuffer:
