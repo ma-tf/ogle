@@ -66,8 +66,9 @@ overflow.
 is removed from `dashboard`, `startup`, and `watching` as duplicated local constants. Components that make height-based
 layout decisions (e.g. `dashboard`, `logpane`) import the shared value and derive their own usable area internally,
 guarding with `max(0, ...)` to avoid negative dimensions on small terminals.
-- `listRatio` and `listMinTermWidth` may still be duplicated between `carousel` and `logpane` because both independently
-derive their allocation from raw `w`. This is accepted as the lesser evil versus parent pre-calculation.
+- `listRatio` and `listMinTermWidth` are duplicated across `carousel`, `carousel/card`, `accordion`, `logpane`, and
+`labelsaccordion` because each independently derives its allocation from raw `w`. This is accepted as the lesser evil
+versus parent pre-calculation.
 - `servicehost.ServiceName()` and `statusbar.Height()` are removed. The interface of a component is `Init/Update/View`
 only.
 - Tests improve: any model can be exercised with `tea.WindowSizeMsg{Width: 80, Height: 24}` and asserted to store
