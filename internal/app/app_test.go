@@ -176,14 +176,7 @@ func TestWatchingKeymapPinnedHelp(t *testing.T) {
 	m, cleanup, _, _, _ := newModel(t) //nolint:dogsled // unified helper returns 5 values
 	defer func() { require.NoError(t, cleanup()) }()
 
-	_, cmd := m.Update(msgs.FileRemoved{File: testComposeFile})
-	require.NotNil(t, cmd)
-
-	batch, ok := cmd().(tea.BatchMsg)
-	require.True(t, ok)
-
-	bindMsg, found := extractBindingsMsgFromBatch(t, batch)
-	require.True(t, found)
+	bindMsg := setupWatchingAndGetBindings(t, m)
 
 	km, ok := bindMsg.Keymap.(interface {
 		PinnedHelp() []key.Binding
@@ -204,14 +197,7 @@ func TestWatchingKeymapShortHelpEmpty(t *testing.T) {
 	m, cleanup, _, _, _ := newModel(t) //nolint:dogsled // unified helper returns 5 values
 	defer func() { require.NoError(t, cleanup()) }()
 
-	_, cmd := m.Update(msgs.FileRemoved{File: testComposeFile})
-	require.NotNil(t, cmd)
-
-	batch, ok := cmd().(tea.BatchMsg)
-	require.True(t, ok)
-
-	bindMsg, found := extractBindingsMsgFromBatch(t, batch)
-	require.True(t, found)
+	bindMsg := setupWatchingAndGetBindings(t, m)
 
 	bindings := bindMsg.Keymap.ShortHelp()
 	assert.Empty(t, bindings)
@@ -223,14 +209,7 @@ func TestWatchingKeymapFullHelp(t *testing.T) {
 	m, cleanup, _, _, _ := newModel(t) //nolint:dogsled // unified helper returns 5 values
 	defer func() { require.NoError(t, cleanup()) }()
 
-	_, cmd := m.Update(msgs.FileRemoved{File: testComposeFile})
-	require.NotNil(t, cmd)
-
-	batch, ok := cmd().(tea.BatchMsg)
-	require.True(t, ok)
-
-	bindMsg, found := extractBindingsMsgFromBatch(t, batch)
-	require.True(t, found)
+	bindMsg := setupWatchingAndGetBindings(t, m)
 
 	fullHelp := bindMsg.Keymap.FullHelp()
 	require.Len(t, fullHelp, 1)
@@ -877,6 +856,21 @@ func TestUpdateMouseClick(t *testing.T) {
 			}
 		})
 	}
+}
+
+func setupWatchingAndGetBindings(t *testing.T, m app.Model) msgs.BindingsMsg {
+	t.Helper()
+
+	_, cmd := m.Update(msgs.FileRemoved{File: testComposeFile})
+	require.NotNil(t, cmd)
+
+	batch, ok := cmd().(tea.BatchMsg)
+	require.True(t, ok)
+
+	bindMsg, found := extractBindingsMsgFromBatch(t, batch)
+	require.True(t, found)
+
+	return bindMsg
 }
 
 func extractBindingsMsgFromBatch(t *testing.T, batch tea.BatchMsg) (msgs.BindingsMsg, bool) {
