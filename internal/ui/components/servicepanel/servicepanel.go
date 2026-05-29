@@ -81,20 +81,6 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 0, len(m.hosts)+1)
 
 	switch msg := msg.(type) {
-	case msgs.ReportWrapStatus:
-		for i := range m.hosts {
-			if m.hosts[i].ServiceName() == msg.ServiceName {
-				var cmd tea.Cmd
-
-				m.hosts[i], cmd = m.hosts[i].Update(msg)
-				cmds = append(cmds, cmd)
-
-				break
-			}
-		}
-
-		return m, tea.Batch(cmds...)
-
 	case theme.Changed:
 		m.theme = msg.Theme
 
