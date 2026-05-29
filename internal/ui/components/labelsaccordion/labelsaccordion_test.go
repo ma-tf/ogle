@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -17,6 +18,28 @@ const (
 	testLabelValue  = "bar"
 	testLabelKey    = "ogle.foo"
 )
+
+// widthForTerm computes the column width that the labels accordion should use
+// for a given terminal width.
+func widthForTerm(w int) int {
+	listMinTermWidth := 80
+	listRatio := 30
+	pctDivisor := 100
+
+	return max(w, listMinTermWidth) * listRatio / pctDivisor
+}
+
+func TestView_ColumnWidth(t *testing.T) {
+	t.Parallel()
+
+	m := labelsaccordion.New(theme.Default(), 100, nil)
+	_ = m.Init()
+
+	w := lipgloss.Width(m.View().Content)
+	columnW := widthForTerm(100)
+	assert.Equal(t, columnW, w,
+		"header should render at 30%% column width, not full terminal width")
+}
 
 func TestView(t *testing.T) {
 	t.Parallel()
