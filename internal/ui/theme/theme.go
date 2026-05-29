@@ -69,7 +69,7 @@ type Theme struct {
 	TopbarStatusText               color.Color // daemon status text foreground
 	TopbarDisconnectedBackground   color.Color // red — "DISCONNECTED" badge
 	TopbarRetryBackground          color.Color // orange — "RECONNECTING" badge
-	TopbarWrapBackground           color.Color // green — "WRAP" badge background
+	TopbarWrapBackground           color.Color // amber — "WRAP" badge background
 	TopbarTruncBackground          color.Color // amber — ">>" truncation badge background
 	LogPaneBackground              color.Color // log pane background fill
 	CarouselFocused                color.Color

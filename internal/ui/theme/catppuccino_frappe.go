@@ -71,7 +71,7 @@ func CatppuccinoFrappe() *Theme {
 		TopbarStatusText:               frappeWhite,
 		TopbarDisconnectedBackground:   frappeRed,
 		TopbarRetryBackground:          frappePeach,
-		TopbarWrapBackground:           frappeGreen,
+		TopbarWrapBackground:           frappeYellow,
 		TopbarTruncBackground:          frappeYellow,
 		CarouselFocused:                frappeSubtext0,
 		CarouselBlurred:                frappeOverlay0,

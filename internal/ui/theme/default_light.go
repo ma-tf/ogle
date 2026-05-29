@@ -41,7 +41,7 @@ func DefaultLight() *Theme {
 		TopbarStatusText:               defaultWhite,
 		TopbarDisconnectedBackground:   defaultRed,
 		TopbarRetryBackground:          defaultBrightYellow,
-		TopbarWrapBackground:           defaultGreen,
+		TopbarWrapBackground:           defaultYellow,
 		TopbarTruncBackground:          defaultYellow,
 		CarouselFocused:                defaultBlack,
 		CarouselBlurred:                defaultBrightBlack,

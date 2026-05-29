@@ -71,7 +71,7 @@ func CatppuccinoLatte() *Theme {
 		TopbarStatusText:               latteWhite,
 		TopbarDisconnectedBackground:   latteRed,
 		TopbarRetryBackground:          lattePeach,
-		TopbarWrapBackground:           latteGreen,
+		TopbarWrapBackground:           latteYellow,
 		TopbarTruncBackground:          latteYellow,
 		CarouselFocused:                latteSubtext0,
 		CarouselBlurred:                latteOverlay0,
