@@ -43,7 +43,10 @@ func (testKeymap) ShortHelp() []key.Binding {
 
 func (testKeymap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
-		{key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit"))},
+		{
+			key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
+			key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "help")),
+		},
 	}
 }
 

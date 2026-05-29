@@ -83,9 +83,10 @@ type Model struct {
 	width        int
 	height       int
 
-	statusActive bool
-	helpExpanded bool
-	keymap       help.KeyMap
+	statusActive    bool
+	helpExpanded    bool
+	keymap          help.KeyMap
+	lastFrameHeight int
 }
 
 // New constructs the app Model. Watcher creation is synchronous; if it
@@ -144,29 +145,30 @@ func New(
 	}
 
 	return Model{
-		ctx:          ctx,
-		cfg:          cfg,
-		configPath:   configPath,
-		projectFile:  pf,
-		theme:        th,
-		zm:           zm,
-		docker:       dockerSvc,
-		parser:       parseSvc,
-		watcher:      wtr,
-		topbar:       topbar.New(ctx, connection.New(), th, dockerSvc, zm),
-		helpbar:      helpbar.New(th),
-		statusbar:    statusbar.New(th),
-		startup:      startup.New(width, height, zm, th, parseSvc),
-		dashboard:    dash,
-		watching:     watching.New(projectFile, width, height, th, parseSvc),
-		about:        about.New(th),
-		showingAbout: false,
-		phase:        currentPhase,
-		width:        width,
-		height:       height,
-		statusActive: false,
-		helpExpanded: false,
-		keymap:       nil,
+		ctx:             ctx,
+		cfg:             cfg,
+		configPath:      configPath,
+		projectFile:     pf,
+		theme:           th,
+		zm:              zm,
+		docker:          dockerSvc,
+		parser:          parseSvc,
+		watcher:         wtr,
+		topbar:          topbar.New(ctx, connection.New(), th, dockerSvc, zm),
+		helpbar:         helpbar.New(th),
+		statusbar:       statusbar.New(th),
+		startup:         startup.New(width, height, zm, th, parseSvc),
+		dashboard:       dash,
+		watching:        watching.New(projectFile, width, height, th, parseSvc),
+		about:           about.New(th),
+		showingAbout:    false,
+		phase:           currentPhase,
+		width:           width,
+		height:          height,
+		statusActive:    false,
+		helpExpanded:    false,
+		keymap:          nil,
+		lastFrameHeight: 0,
 	}, wtr.Close, nil
 }
 
@@ -193,7 +195,7 @@ func (m Model) Init() tea.Cmd {
 //
 //nolint:funlen // long multi-branch switch
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var topbarCmd, helpbarCmd, statusbarCmd, aboutCmd tea.Cmd
+	var topbarCmd, helpbarCmd, statusbarCmd, aboutCmd, frameCmd tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -246,10 +248,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.phase = PhaseWatching
 		m.statusActive = false
 
+		m, frameCmd = m.frameHeightCmd()
+
 		return m, tea.Batch(
 			func() tea.Msg { return msgs.TopbarContext{Phase: "watching", File: "", Service: ""} },
 			func() tea.Msg { return msgs.BindingsMsg{Keymap: watchingKeymap{}} },
-			m.frameHeightCmd(),
+			frameCmd,
 		)
 
 	case msgs.DisplayError,
@@ -258,7 +262,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.statusbar, statusbarCmd = m.statusbar.Update(msg)
 		m.statusActive = m.statusbar.View().Content != ""
 
-		return m, tea.Batch(statusbarCmd, m.frameHeightCmd())
+		m, frameCmd = m.frameHeightCmd()
+
+		return m, tea.Batch(statusbarCmd, frameCmd)
 
 	case msgs.AboutVisibilityChanged:
 		m.showingAbout = msg.Visible
@@ -288,7 +294,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.watching, cmd = m.watching.Update(msg)
 	}
 
-	return m, tea.Batch(cmd, topbarCmd, helpbarCmd, statusbarCmd, aboutCmd, m.frameHeightCmd())
+	m, frameCmd = m.frameHeightCmd()
+
+	return m, tea.Batch(cmd, topbarCmd, helpbarCmd, statusbarCmd, aboutCmd, frameCmd)
 }
 
 func (m Model) handleSettingsApplied(msg msgs.SettingsApplied) (tea.Model, tea.Cmd) {
@@ -339,12 +347,14 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 	case key.Matches(msg, keyProfile):
 		return m, profiling.DumpCmd()
 	case key.Matches(msg, keyHelpToggle):
-		var helpbarCmd tea.Cmd
+		var helpbarCmd, frameCmd tea.Cmd
 
 		m.helpbar, helpbarCmd = m.helpbar.Update(helpbar.ToggleMsg{})
 		m.helpExpanded = !m.helpExpanded
 
-		return m, tea.Batch(helpbarCmd, m.frameHeightCmd())
+		m, frameCmd = m.frameHeightCmd()
+
+		return m, tea.Batch(helpbarCmd, frameCmd)
 	case key.Matches(msg, keyAbout):
 		m.showingAbout = true
 
@@ -370,6 +380,10 @@ func (m Model) handleProjectLoaded(msg msgs.ProjectLoaded) (Model, tea.Cmd) {
 	m.phase = PhaseDashboard
 	m.statusActive = false
 
+	var frameCmd tea.Cmd
+
+	m, frameCmd = m.frameHeightCmd()
+
 	return m, tea.Batch(
 		m.dashboard.Init(),
 		func() tea.Msg {
@@ -379,7 +393,7 @@ func (m Model) handleProjectLoaded(msg msgs.ProjectLoaded) (Model, tea.Cmd) {
 				Service: "",
 			}
 		},
-		m.frameHeightCmd(),
+		frameCmd,
 	)
 }
 
@@ -439,10 +453,18 @@ func (m Model) computeFrameHeight() int {
 }
 
 // frameHeightCmd returns a command that delivers the current frame height
-// to phase components so they can adjust their usable body area.
-func (m Model) frameHeightCmd() tea.Cmd {
-	return func() tea.Msg {
-		return msgs.FrameHeight{Height: m.computeFrameHeight()}
+// to phase components so they can adjust their usable body area. It only
+// emits a message when the value actually changes.
+func (m Model) frameHeightCmd() (Model, tea.Cmd) {
+	h := m.computeFrameHeight()
+	if h == m.lastFrameHeight {
+		return m, nil
+	}
+
+	m.lastFrameHeight = h
+
+	return m, func() tea.Msg {
+		return msgs.FrameHeight{Height: h}
 	}
 }
 

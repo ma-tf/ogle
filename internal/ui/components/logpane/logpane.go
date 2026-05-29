@@ -205,6 +205,8 @@ func (m Model) drainLines() (Model, tea.Cmd) {
 		return m, nil
 	}
 
+	var trimmed bool
+
 	for {
 		select {
 		case line, ok := <-m.lineCh:
@@ -217,29 +219,42 @@ func (m Model) drainLines() (Model, tea.Cmd) {
 			m.lines = append(m.lines, line)
 			if len(m.lines) > m.cap {
 				m.lines = m.lines[len(m.lines)-m.cap:]
+				trimmed = true
 			}
 		default:
-			wasAtBottom := m.viewport.AtBottom()
-			m.viewport.SetContentLines(m.lines)
-			m.viewport.SetHeight(max(m.h-borderWidth, 0))
+			m = m.refreshViewport()
 
-			if wasAtBottom {
-				m.viewport.GotoBottom()
-			}
-
-			if !m.wrap {
-				overflow := m.hasOverflow()
-				if overflow != m.prevOverflow {
-					m.prevOverflow = overflow
-
-					return m, func() tea.Msg {
-						return msgs.LogWrapStatus{On: m.wrap, Overflow: overflow, ServiceName: ""}
-					}
-				}
-			}
-
-			return m, nil
+			return m.overflowCmd(trimmed)
 		}
+	}
+}
+
+func (m Model) refreshViewport() Model {
+	wasAtBottom := m.viewport.AtBottom()
+	m.viewport.SetContentLines(m.lines)
+	m.viewport.SetHeight(max(m.h-borderWidth, 0))
+
+	if wasAtBottom {
+		m.viewport.GotoBottom()
+	}
+
+	return m
+}
+
+func (m Model) overflowCmd(trimmed bool) (Model, tea.Cmd) {
+	if m.wrap || (m.prevOverflow && !trimmed) {
+		return m, nil
+	}
+
+	overflow := m.hasOverflow()
+	if overflow == m.prevOverflow {
+		return m, nil
+	}
+
+	m.prevOverflow = overflow
+
+	return m, func() tea.Msg {
+		return msgs.LogWrapStatus{On: m.wrap, Overflow: overflow, ServiceName: ""}
 	}
 }
 
