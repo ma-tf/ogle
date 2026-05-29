@@ -361,10 +361,6 @@ func (m Model) View() tea.View {
 
 	labelsContent := m.labelsAccordion.View().Content
 	if labelsContent != "" {
-		labelsContent = lipgloss.NewStyle().
-			Width(listW).
-			Background(m.th.CarouselBackground).
-			Render(labelsContent)
 		listContent = lipgloss.JoinVertical(lipgloss.Top, listContent, labelsContent)
 	}
 

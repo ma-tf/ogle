@@ -14,7 +14,12 @@ import (
 	"github.com/ma-tf/ogle/internal/ui/theme"
 )
 
-const zoneLabelsHeader = "labels-header"
+const (
+	zoneLabelsHeader = "labels-header"
+	listMinTermWidth = 80
+	listRatio        = 30
+	pctDivisor       = 100
+)
 
 // Model is the labels accordion component state.
 type Model struct {
@@ -22,6 +27,7 @@ type Model struct {
 	collapsed bool
 	hovered   bool
 	w         int
+	columnW   int
 	th        *theme.Theme
 	zm        *zone.Manager
 }
@@ -33,6 +39,7 @@ func New(th *theme.Theme, w int, zm *zone.Manager) Model {
 		collapsed: true,
 		hovered:   false,
 		w:         w,
+		columnW:   max(w, listMinTermWidth) * listRatio / pctDivisor,
 		th:        th,
 		zm:        zm,
 	}
@@ -47,6 +54,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.w = msg.Width
+		m.columnW = max(m.w, listMinTermWidth) * listRatio / pctDivisor
 
 		return m, nil
 
@@ -105,7 +113,7 @@ func (m Model) View() tea.View {
 	}
 
 	headerStr := lipgloss.NewStyle().
-		Width(m.w).
+		Width(m.columnW).
 		Foreground(m.th.AccordionLabel).
 		Background(headerBg).
 		Render(" " + indicator + " Labels")
@@ -127,6 +135,7 @@ func (m Model) View() tea.View {
 	rows := make([]string, 0, len(keys))
 	for _, k := range keys {
 		row := lipgloss.NewStyle().
+			Width(m.columnW).
 			Foreground(m.th.AccordionLabel).
 			Background(m.th.AccordionBackground).
 			Render(k + ": " + m.labels[k])
@@ -135,6 +144,7 @@ func (m Model) View() tea.View {
 
 	content := lipgloss.JoinVertical(lipgloss.Top, rows...)
 	content = lipgloss.NewStyle().
+		Width(m.columnW).
 		Background(m.th.AccordionBackground).
 		Render(content)
 
