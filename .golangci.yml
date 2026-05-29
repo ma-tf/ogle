@@ -136,7 +136,7 @@ linters:
     ## you may want to enable
     #- arangolint # opinionated best practices for arangodb client
     - decorder # checks declaration order and count of types, constants, variables and functions
-    - exhaustruct # [highly recommend to enable] checks if all structure fields are initialized
+    - exhaustruct # [highly recommend to enable] checks if all structure fields are initialised
     #- ginkgolinter # [if you use ginkgo/gomega] enforces standards of using ginkgo and gomega
     - godox # detects usage of FIXME, TODO and other keywords inside comments
     - goheader # checks is file header matches to pattern
@@ -393,7 +393,7 @@ linters:
       require-specific: true
 
     perfsprint:
-      # Optimizes into strings concatenation.
+      # Optimises into strings concatenation.
       # Default: true
       strconcat: false
 

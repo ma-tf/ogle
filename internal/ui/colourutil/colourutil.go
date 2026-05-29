@@ -1,5 +1,5 @@
-// Package colorutil provides colour manipulation helpers for the UI layer.
-package colorutil
+// Package colourutil provides colour manipulation helpers for the UI layer.
+package colourutil
 
 import (
 	"fmt"

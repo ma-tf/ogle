@@ -72,7 +72,7 @@ func TestFindSlash(t *testing.T) {
 	}
 }
 
-func TestNormalizeShortPort(t *testing.T) {
+func TestNormaliseShortPort(t *testing.T) {
 	t.Parallel()
 
 	type testCase struct {
@@ -98,13 +98,13 @@ func TestNormalizeShortPort(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			result := parser.NormalizeShortPort(tc.input)
+			result := parser.NormaliseShortPort(tc.input)
 			assert.Equal(t, tc.expected, result)
 		})
 	}
 }
 
-func TestNormalizeLongPort(t *testing.T) {
+func TestNormaliseLongPort(t *testing.T) {
 	t.Parallel()
 
 	type testCase struct {
@@ -157,13 +157,13 @@ func TestNormalizeLongPort(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			result := parser.NormalizeLongPort(tc.input)
+			result := parser.NormaliseLongPort(tc.input)
 			assert.Equal(t, tc.expected, result)
 		})
 	}
 }
 
-func TestNormalizePorts(t *testing.T) {
+func TestNormalisePorts(t *testing.T) {
 	t.Parallel()
 
 	type testCase struct {
@@ -210,7 +210,7 @@ func TestNormalizePorts(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			result := parser.NormalizePorts(tc.input)
+			result := parser.NormalisePorts(tc.input)
 			assert.Equal(t, tc.expected, result)
 		})
 	}

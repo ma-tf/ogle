@@ -57,15 +57,15 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 func (m Model) View() tea.View {
 	title := lipgloss.NewStyle().
 		Bold(true).
-		Foreground(m.th.AboutTitleColor).
+		Foreground(m.th.AboutTitleColour).
 		Render("ogle")
 
 	artStyle := lipgloss.NewStyle().
-		Foreground(m.th.AboutArtColor).
+		Foreground(m.th.AboutArtColour).
 		Render(ascii)
 
 	versionLine := lipgloss.NewStyle().
-		Foreground(m.th.AboutTextColor).
+		Foreground(m.th.AboutTextColour).
 		Render(version.Version + " (commit: " + version.Commit + ", built: " + version.Date + ")")
 
 	url := ansi.SetHyperlink("https://github.com/ma-tf/ogle") +
@@ -73,11 +73,11 @@ func (m Model) View() tea.View {
 		ansi.ResetHyperlink()
 
 	urlStyle := lipgloss.NewStyle().
-		Foreground(m.th.AboutLinkColor).
+		Foreground(m.th.AboutLinkColour).
 		Render(url)
 
 	closeHint := lipgloss.NewStyle().
-		Foreground(m.th.AboutHintColor).
+		Foreground(m.th.AboutHintColour).
 		Render("F1 / esc / q to close")
 
 	content := lipgloss.JoinVertical(lipgloss.Center,

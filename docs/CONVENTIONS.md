@@ -1,5 +1,9 @@
 # Conventions
 
+## Language
+
+British English throughout.
+
 ## Code comments
 
 - Only comment *why* — motivation, constraint, non-obvious consequence

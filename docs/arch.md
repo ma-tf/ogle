@@ -21,7 +21,7 @@ internal/
 │   │       ├── streamer.go           # Streamer interface
 │   │       └── service.go            # LogStreamer implementation
 │   ├── parser/                       # Compose File parsing
-│   │   └── service.go                # Parser interface, Parse(), NormalizePorts/SplitByColon/FindSlash
+│   │   └── service.go                # Parser interface, Parse(), NormalisePorts/SplitByColon/FindSlash
 │   ├── scanner/                      # Compose File discovery
 │   │   └── service.go                # Scanner interface, ScanAll(), KnownFilenames()
 │   └── watcher/                      # directory monitoring via fsnotify
@@ -30,7 +30,7 @@ internal/
 ├── tools/
 │   └── docgen/                       # CLI documentation generation
 └── ui/
-    ├── colorutil/                    # colour utilities (Brighten)
+    ├── colourutil/                   # colour utilities (Brighten)
     ├── components/
     │   ├── accordion/                # Service Inspector — service details accordion (name, image, ports, state, age)
     │   ├── labelsaccordion/          # Service Inspector — ogle.* container labels accordion
@@ -77,7 +77,7 @@ cmd → app
 app → ui/flows/startup, ui/flows/dashboard, ui/components/about, msgs, services/watcher, services/docker, config
 ui/flows/startup → services/parser, ui/components/fileselect, msgs, ui/theme
 ui/flows/dashboard → services/parser, services/docker/logs, ui/components/{accordion,labelsaccordion,carousel,servicepanel,settings}, msgs, ui/theme, config
-ui/components/* → msgs, ui/theme, ui/colorutil
+ui/components/* → msgs, ui/theme, ui/colourutil
 ui/components/about → version
 ui/components/topbar → bubblezone, services/docker, services/docker/connection
 services/docker → domain, msgs

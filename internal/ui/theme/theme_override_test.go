@@ -22,9 +22,9 @@ func TestApplyOverrides(t *testing.T) {
 	base := theme.Default()
 
 	overrides := theme.UserThemeFile{
-		TextColor:           testColorRed,
-		StateRunningColor:   testColorGreen,
-		HelpBackgroundColor: testColorBlue,
+		TextColour:           testColorRed,
+		StateRunningColour:   testColorGreen,
+		HelpBackgroundColour: testColorBlue,
 	}
 
 	result := theme.ApplyOverrides(base, overrides)
@@ -44,7 +44,7 @@ func TestApplyOverridesEmptyFieldsDoNotOverride(t *testing.T) {
 	base := theme.Default()
 
 	overrides := theme.UserThemeFile{
-		TextColor: testColorRed,
+		TextColour: testColorRed,
 	}
 
 	result := theme.ApplyOverrides(base, overrides)

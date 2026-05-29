@@ -100,7 +100,7 @@ func (s Service) Parse(path string) (*domain.Project, error) {
 			Image:         svc.Image,
 			ContainerName: svc.ContainerName,
 			Labels:        svc.Labels,
-			Ports:         NormalizePorts(svc.Ports),
+			Ports:         NormalisePorts(svc.Ports),
 		})
 	}
 
@@ -129,10 +129,10 @@ func (s Service) readAndUnmarshal(path string) (composeFile, error) {
 	return cf, nil
 }
 
-// NormalizePorts converts Docker Compose port declarations into normalised
+// NormalisePorts converts Docker Compose port declarations into normalised
 // display format "host→container/protocol". Returns an empty slice if ports
 // is nil or empty.
-func NormalizePorts(ports []any) []string {
+func NormalisePorts(ports []any) []string {
 	if len(ports) == 0 {
 		return nil
 	}
@@ -142,19 +142,19 @@ func NormalizePorts(ports []any) []string {
 		switch v := p.(type) {
 		case string:
 			// Short form: "8080:80", "8080:80/tcp", "127.0.0.1:8080:80/tcp", "80", etc.
-			result = append(result, NormalizeShortPort(v))
+			result = append(result, NormaliseShortPort(v))
 		case map[string]any:
 			// Long form: {target: 80, published: 8080, protocol: tcp}
-			result = append(result, NormalizeLongPort(v))
+			result = append(result, NormaliseLongPort(v))
 		}
 	}
 
 	return result
 }
 
-// NormalizeShortPort converts a short-form port string to "host→container/proto" format.
+// NormaliseShortPort converts a short-form port string to "host→container/proto" format.
 // Handles: "8080:80", "8080:80/tcp", "127.0.0.1:8080:80/tcp", "80", etc.
-func NormalizeShortPort(s string) string {
+func NormaliseShortPort(s string) string {
 	// Strip bind address (e.g., "127.0.0.1:8080:80/tcp" → "8080:80/tcp")
 	parts := SplitByColon(s)
 	protocol := "tcp" // default
@@ -187,8 +187,8 @@ func NormalizeShortPort(s string) string {
 	return s
 }
 
-// NormalizeLongPort converts a long-form port object to "host→container/proto" format.
-func NormalizeLongPort(m map[string]any) string {
+// NormaliseLongPort converts a long-form port object to "host→container/proto" format.
+func NormaliseLongPort(m map[string]any) string {
 	protocol := "tcp"
 	if p, ok := m["protocol"].(string); ok && p != "" {
 		protocol = p

@@ -293,21 +293,21 @@ Custom theme overrides in `UserThemeFile` support 6 about-specific YAML fields:
 
 | YAML field | Maps to | Description |
 |------------|---------|-------------|
-| `aboutBackgroundColor` | `Theme.AboutBackground` | About overlay background fill |
-| `aboutTitleColor` | `Theme.AboutTitleColor` | Title ("ogle") foreground |
-| `aboutArtColor` | `Theme.AboutArtColor` | ASCII art foreground |
-| `aboutTextColor` | `Theme.AboutTextColor` | Version line foreground |
-| `aboutLinkColor` | `Theme.AboutLinkColor` | URL hyperlink foreground |
-| `aboutHintColor` | `Theme.AboutHintColor` | Close hint foreground |
+| `aboutBackgroundColour` | `Theme.AboutBackground` | About overlay background fill |
+| `aboutTitleColour` | `Theme.AboutTitleColour` | Title ("ogle") foreground |
+| `aboutArtColour` | `Theme.AboutArtColour` | ASCII art foreground |
+| `aboutTextColour` | `Theme.AboutTextColour` | Version line foreground |
+| `aboutLinkColour` | `Theme.AboutLinkColour` | URL hyperlink foreground |
+| `aboutHintColour` | `Theme.AboutHintColour` | Close hint foreground |
 
 `UserThemeFile` additionally supports 4 help bar-specific YAML fields:
 
 | YAML field | Maps to | Description |
 |------------|---------|-------------|
-| `helpKeyColor` | `Theme.HelpKey` | Key binding label foreground (e.g. "ctrl+c") |
-| `helpDescColor` | `Theme.HelpDesc` | Key binding description foreground (e.g. "quit") |
-| `helpSepColor` | `Theme.HelpSep` | Separator and ellipsis foreground |
-| `helpBackgroundColor` | `Theme.HelpBackground` | Full-width background fill behind the help bar |
+| `helpKeyColour` | `Theme.HelpKey` | Key binding label foreground (e.g. "ctrl+c") |
+| `helpDescColour` | `Theme.HelpDesc` | Key binding description foreground (e.g. "quit") |
+| `helpSepColour` | `Theme.HelpSep` | Separator and ellipsis foreground |
+| `helpBackgroundColour` | `Theme.HelpBackground` | Full-width background fill behind the help bar |
 
 ## Help Toggle
 

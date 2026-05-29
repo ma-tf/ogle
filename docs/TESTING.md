@@ -294,5 +294,5 @@ content (stderr, exit codes) into the error chain.
 
 - Black-box only: Tests must use `package foo_test`. Dependencies controllable via constructor injection only
  (`WithCommander`, `WithHTTPClient`, `WithReadFile` option pattern). Pure functions and types may be exported for
- black-box testing (e.g. `ParsePsOutput`, `ParseState`, `NormalizePorts`, `ApplyOverrides`, `UserThemeFile`,
+ black-box testing (e.g. `ParsePsOutput`, `ParseState`, `NormalisePorts`, `ApplyOverrides`, `UserThemeFile`,
  `ErrUnexpectedStatus`). No `export_test.go` files — the codebase has moved away from that pattern.

@@ -1,4 +1,4 @@
-package colorutil_test
+package colourutil_test
 
 import (
 	"image/color"
@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/ma-tf/ogle/internal/ui/colorutil"
+	"github.com/ma-tf/ogle/internal/ui/colourutil"
 )
 
 func TestBrighten(t *testing.T) {
@@ -56,7 +56,7 @@ func TestBrighten(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := colorutil.Brighten(tc.c, tc.factor)
+			got := colourutil.Brighten(tc.c, tc.factor)
 
 			assert.Equal(t, tc.expected, got)
 		})

@@ -86,65 +86,65 @@ type Theme struct {
 	AccordionHeaderHoverBackground color.Color // header bar background when hovered
 	BodyBackground                 color.Color // background fill behind body content
 	AboutBackground                color.Color // about overlay background fill
-	AboutTitleColor                color.Color // about overlay title ("ogle") foreground
-	AboutArtColor                  color.Color // about overlay ASCII art foreground
-	AboutTextColor                 color.Color // about overlay version line foreground
-	AboutLinkColor                 color.Color // about overlay URL hyperlink foreground
-	AboutHintColor                 color.Color // about overlay close hint foreground
+	AboutTitleColour               color.Color // about overlay title ("ogle") foreground
+	AboutArtColour                 color.Color // about overlay ASCII art foreground
+	AboutTextColour                color.Color // about overlay version line foreground
+	AboutLinkColour                color.Color // about overlay URL hyperlink foreground
+	AboutHintColour                color.Color // about overlay close hint foreground
 }
 
 // UserThemeFile is the YAML schema for a user-defined theme override file.
 type UserThemeFile struct {
-	Base                                string `yaml:"base"`
-	BorderFocusedColor                  string `yaml:"borderFocusedColor"`
-	BorderBlurredColor                  string `yaml:"borderBlurredColor"`
-	ServiceListTitleColor               string `yaml:"serviceListTitleColor"`
-	HelpKeyColor                        string `yaml:"helpKeyColor"`
-	HelpDescColor                       string `yaml:"helpDescColor"`
-	HelpSepColor                        string `yaml:"helpSepColor"`
-	HelpBackgroundColor                 string `yaml:"helpBackgroundColor"`
-	ServiceListBackgroundColor          string `yaml:"serviceListBackgroundColor"`
-	HoverBackgroundColor                string `yaml:"hoverBackgroundColor"`
-	SelectedBackgroundColor             string `yaml:"selectedBackgroundColor"`
-	TextColor                           string `yaml:"textColor"`
-	SubtextColor                        string `yaml:"subtextColor"`
-	StateRunningColor                   string `yaml:"stateRunningColor"`
-	StateExitedColor                    string `yaml:"stateExitedColor"`
-	StatePausedColor                    string `yaml:"statePausedColor"`
-	StateTransientColor                 string `yaml:"stateTransientColor"`
-	StateMutedColor                     string `yaml:"stateMutedColor"`
-	ActionErrorColor                    string `yaml:"actionErrorColor"`
-	StatusInfoColor                     string `yaml:"statusInfoColor"`
-	StatusBarBackgroundColor            string `yaml:"statusBarBackgroundColor"`
-	TopbarBackgroundColor               string `yaml:"topbarBackgroundColor"`
-	TopbarBrandTextColor                string `yaml:"topbarBrandTextColor"`
-	TopbarBrandBackgroundColor          string `yaml:"topbarBrandBackgroundColor"`
-	TopbarContextTextColor              string `yaml:"topbarContextTextColor"`
-	TopbarStatusTextColor               string `yaml:"topbarStatusTextColor"`
-	TopbarDisconnectedBackgroundColor   string `yaml:"topbarDisconnectedBackgroundColor"`
-	TopbarRetryBackgroundColor          string `yaml:"topbarRetryBackgroundColor"`
-	TopbarWrapBackgroundColor           string `yaml:"topbarWrapBackgroundColor"`
-	TopbarTruncBackgroundColor          string `yaml:"topbarTruncBackgroundColor"`
-	CarouselFocusedColor                string `yaml:"carouselFocusedColor"`
-	CarouselBlurredColor                string `yaml:"carouselBlurredColor"`
-	CarouselBackgroundColor             string `yaml:"carouselBackgroundColor"`
-	CarouselNavBackgroundColor          string `yaml:"carouselNavBackgroundColor"`
-	CarouselHoverColor                  string `yaml:"carouselHoverColor"`
-	CarouselEmptyColor                  string `yaml:"carouselEmptyColor"`
-	CardHoverBackgroundColor            string `yaml:"cardHoverBackgroundColor"`
-	LogPaneBackgroundColor              string `yaml:"logPaneBackgroundColor"`
-	AccordionLabelColor                 string `yaml:"accordionLabelColor"`
-	AccordionValueColor                 string `yaml:"accordionValueColor"`
-	AccordionBackgroundColor            string `yaml:"accordionBackgroundColor"`
-	AccordionHeaderBackgroundColor      string `yaml:"accordionHeaderBackgroundColor"`
-	AccordionHeaderHoverBackgroundColor string `yaml:"accordionHeaderHoverBackgroundColor"`
-	BodyBackgroundColor                 string `yaml:"bodyBackgroundColor"`
-	AboutBackgroundColor                string `yaml:"aboutBackgroundColor"`
-	AboutTitleColor                     string `yaml:"aboutTitleColor"`
-	AboutArtColor                       string `yaml:"aboutArtColor"`
-	AboutTextColor                      string `yaml:"aboutTextColor"`
-	AboutLinkColor                      string `yaml:"aboutLinkColor"`
-	AboutHintColor                      string `yaml:"aboutHintColor"`
+	Base                                 string `yaml:"base"`
+	BorderFocusedColour                  string `yaml:"borderFocusedColour"`
+	BorderBlurredColour                  string `yaml:"borderBlurredColour"`
+	ServiceListTitleColour               string `yaml:"serviceListTitleColour"`
+	HelpKeyColour                        string `yaml:"helpKeyColour"`
+	HelpDescColour                       string `yaml:"helpDescColour"`
+	HelpSepColour                        string `yaml:"helpSepColour"`
+	HelpBackgroundColour                 string `yaml:"helpBackgroundColour"`
+	ServiceListBackgroundColour          string `yaml:"serviceListBackgroundColour"`
+	HoverBackgroundColour                string `yaml:"hoverBackgroundColour"`
+	SelectedBackgroundColour             string `yaml:"selectedBackgroundColour"`
+	TextColour                           string `yaml:"textColour"`
+	SubtextColour                        string `yaml:"subtextColour"`
+	StateRunningColour                   string `yaml:"stateRunningColour"`
+	StateExitedColour                    string `yaml:"stateExitedColour"`
+	StatePausedColour                    string `yaml:"statePausedColour"`
+	StateTransientColour                 string `yaml:"stateTransientColour"`
+	StateMutedColour                     string `yaml:"stateMutedColour"`
+	ActionErrorColour                    string `yaml:"actionErrorColour"`
+	StatusInfoColour                     string `yaml:"statusInfoColour"`
+	StatusBarBackgroundColour            string `yaml:"statusBarBackgroundColour"`
+	TopbarBackgroundColour               string `yaml:"topbarBackgroundColour"`
+	TopbarBrandTextColour                string `yaml:"topbarBrandTextColour"`
+	TopbarBrandBackgroundColour          string `yaml:"topbarBrandBackgroundColour"`
+	TopbarContextTextColour              string `yaml:"topbarContextTextColour"`
+	TopbarStatusTextColour               string `yaml:"topbarStatusTextColour"`
+	TopbarDisconnectedBackgroundColour   string `yaml:"topbarDisconnectedBackgroundColour"`
+	TopbarRetryBackgroundColour          string `yaml:"topbarRetryBackgroundColour"`
+	TopbarWrapBackgroundColour           string `yaml:"topbarWrapBackgroundColour"`
+	TopbarTruncBackgroundColour          string `yaml:"topbarTruncBackgroundColour"`
+	CarouselFocusedColour                string `yaml:"carouselFocusedColour"`
+	CarouselBlurredColour                string `yaml:"carouselBlurredColour"`
+	CarouselBackgroundColour             string `yaml:"carouselBackgroundColour"`
+	CarouselNavBackgroundColour          string `yaml:"carouselNavBackgroundColour"`
+	CarouselHoverColour                  string `yaml:"carouselHoverColour"`
+	CarouselEmptyColour                  string `yaml:"carouselEmptyColour"`
+	CardHoverBackgroundColour            string `yaml:"cardHoverBackgroundColour"`
+	LogPaneBackgroundColour              string `yaml:"logPaneBackgroundColour"`
+	AccordionLabelColour                 string `yaml:"accordionLabelColour"`
+	AccordionValueColour                 string `yaml:"accordionValueColour"`
+	AccordionBackgroundColour            string `yaml:"accordionBackgroundColour"`
+	AccordionHeaderBackgroundColour      string `yaml:"accordionHeaderBackgroundColour"`
+	AccordionHeaderHoverBackgroundColour string `yaml:"accordionHeaderHoverBackgroundColour"`
+	BodyBackgroundColour                 string `yaml:"bodyBackgroundColour"`
+	AboutBackgroundColour                string `yaml:"aboutBackgroundColour"`
+	AboutTitleColour                     string `yaml:"aboutTitleColour"`
+	AboutArtColour                       string `yaml:"aboutArtColour"`
+	AboutTextColour                      string `yaml:"aboutTextColour"`
+	AboutLinkColour                      string `yaml:"aboutLinkColour"`
+	AboutHintColour                      string `yaml:"aboutHintColour"`
 }
 
 // Load resolves a theme by name. configDir is the directory containing
@@ -216,34 +216,34 @@ func ApplyOverrides(t *Theme, f UserThemeFile) *Theme {
 }
 
 func applyStyleOverrides(result *Theme, f UserThemeFile) {
-	if f.BorderFocusedColor != "" {
+	if f.BorderFocusedColour != "" {
 		result.BorderFocused = result.BorderFocused.BorderForeground(
-			lipgloss.Color(f.BorderFocusedColor),
+			lipgloss.Color(f.BorderFocusedColour),
 		)
 	}
 
-	if f.BorderBlurredColor != "" {
+	if f.BorderBlurredColour != "" {
 		result.BorderBlurred = result.BorderBlurred.BorderForeground(
-			lipgloss.Color(f.BorderBlurredColor),
+			lipgloss.Color(f.BorderBlurredColour),
 		)
 	}
 
-	if f.ServiceListTitleColor != "" {
+	if f.ServiceListTitleColour != "" {
 		result.ServiceListTitle = result.ServiceListTitle.Foreground(
-			lipgloss.Color(f.ServiceListTitleColor),
+			lipgloss.Color(f.ServiceListTitleColour),
 		)
 	}
 
-	if f.HelpKeyColor != "" {
-		result.HelpKey = result.HelpKey.Foreground(lipgloss.Color(f.HelpKeyColor))
+	if f.HelpKeyColour != "" {
+		result.HelpKey = result.HelpKey.Foreground(lipgloss.Color(f.HelpKeyColour))
 	}
 
-	if f.HelpDescColor != "" {
-		result.HelpDesc = result.HelpDesc.Foreground(lipgloss.Color(f.HelpDescColor))
+	if f.HelpDescColour != "" {
+		result.HelpDesc = result.HelpDesc.Foreground(lipgloss.Color(f.HelpDescColour))
 	}
 
-	if f.HelpSepColor != "" {
-		result.HelpSep = result.HelpSep.Foreground(lipgloss.Color(f.HelpSepColor))
+	if f.HelpSepColour != "" {
+		result.HelpSep = result.HelpSep.Foreground(lipgloss.Color(f.HelpSepColour))
 	}
 }
 
@@ -254,49 +254,52 @@ type colorOverride struct {
 
 func applyColorOverrides(result *Theme, f UserThemeFile) {
 	overrides := []colorOverride{
-		{field: f.HelpBackgroundColor, dst: &result.HelpBackground},
-		{field: f.ServiceListBackgroundColor, dst: &result.ServiceListBackground},
-		{field: f.HoverBackgroundColor, dst: &result.HoverBackground},
-		{field: f.SelectedBackgroundColor, dst: &result.SelectedBackground},
-		{field: f.TextColor, dst: &result.Text},
-		{field: f.SubtextColor, dst: &result.Subtext},
-		{field: f.StateRunningColor, dst: &result.StateRunning},
-		{field: f.StateExitedColor, dst: &result.StateExited},
-		{field: f.StatePausedColor, dst: &result.StatePaused},
-		{field: f.StateTransientColor, dst: &result.StateTransient},
-		{field: f.StateMutedColor, dst: &result.StateMuted},
-		{field: f.ActionErrorColor, dst: &result.ActionError},
-		{field: f.StatusInfoColor, dst: &result.StatusInfo},
-		{field: f.StatusBarBackgroundColor, dst: &result.StatusBarBackground},
-		{field: f.TopbarBackgroundColor, dst: &result.TopbarBackground},
-		{field: f.TopbarBrandTextColor, dst: &result.TopbarBrandText},
-		{field: f.TopbarBrandBackgroundColor, dst: &result.TopbarBrandBackground},
-		{field: f.TopbarContextTextColor, dst: &result.TopbarContextText},
-		{field: f.TopbarStatusTextColor, dst: &result.TopbarStatusText},
-		{field: f.TopbarDisconnectedBackgroundColor, dst: &result.TopbarDisconnectedBackground},
-		{field: f.TopbarRetryBackgroundColor, dst: &result.TopbarRetryBackground},
-		{field: f.TopbarWrapBackgroundColor, dst: &result.TopbarWrapBackground},
-		{field: f.TopbarTruncBackgroundColor, dst: &result.TopbarTruncBackground},
-		{field: f.CarouselFocusedColor, dst: &result.CarouselFocused},
-		{field: f.CarouselBlurredColor, dst: &result.CarouselBlurred},
-		{field: f.CarouselBackgroundColor, dst: &result.CarouselBackground},
-		{field: f.CarouselNavBackgroundColor, dst: &result.CarouselNavBackground},
-		{field: f.CarouselHoverColor, dst: &result.CarouselHover},
-		{field: f.CarouselEmptyColor, dst: &result.CarouselEmpty},
-		{field: f.CardHoverBackgroundColor, dst: &result.CardHoverBackground},
-		{field: f.LogPaneBackgroundColor, dst: &result.LogPaneBackground},
-		{field: f.AccordionLabelColor, dst: &result.AccordionLabel},
-		{field: f.AccordionValueColor, dst: &result.AccordionValue},
-		{field: f.AccordionBackgroundColor, dst: &result.AccordionBackground},
-		{field: f.AccordionHeaderBackgroundColor, dst: &result.AccordionHeaderBackground},
-		{field: f.AccordionHeaderHoverBackgroundColor, dst: &result.AccordionHeaderHoverBackground},
-		{field: f.BodyBackgroundColor, dst: &result.BodyBackground},
-		{field: f.AboutBackgroundColor, dst: &result.AboutBackground},
-		{field: f.AboutTitleColor, dst: &result.AboutTitleColor},
-		{field: f.AboutArtColor, dst: &result.AboutArtColor},
-		{field: f.AboutTextColor, dst: &result.AboutTextColor},
-		{field: f.AboutLinkColor, dst: &result.AboutLinkColor},
-		{field: f.AboutHintColor, dst: &result.AboutHintColor},
+		{field: f.HelpBackgroundColour, dst: &result.HelpBackground},
+		{field: f.ServiceListBackgroundColour, dst: &result.ServiceListBackground},
+		{field: f.HoverBackgroundColour, dst: &result.HoverBackground},
+		{field: f.SelectedBackgroundColour, dst: &result.SelectedBackground},
+		{field: f.TextColour, dst: &result.Text},
+		{field: f.SubtextColour, dst: &result.Subtext},
+		{field: f.StateRunningColour, dst: &result.StateRunning},
+		{field: f.StateExitedColour, dst: &result.StateExited},
+		{field: f.StatePausedColour, dst: &result.StatePaused},
+		{field: f.StateTransientColour, dst: &result.StateTransient},
+		{field: f.StateMutedColour, dst: &result.StateMuted},
+		{field: f.ActionErrorColour, dst: &result.ActionError},
+		{field: f.StatusInfoColour, dst: &result.StatusInfo},
+		{field: f.StatusBarBackgroundColour, dst: &result.StatusBarBackground},
+		{field: f.TopbarBackgroundColour, dst: &result.TopbarBackground},
+		{field: f.TopbarBrandTextColour, dst: &result.TopbarBrandText},
+		{field: f.TopbarBrandBackgroundColour, dst: &result.TopbarBrandBackground},
+		{field: f.TopbarContextTextColour, dst: &result.TopbarContextText},
+		{field: f.TopbarStatusTextColour, dst: &result.TopbarStatusText},
+		{field: f.TopbarDisconnectedBackgroundColour, dst: &result.TopbarDisconnectedBackground},
+		{field: f.TopbarRetryBackgroundColour, dst: &result.TopbarRetryBackground},
+		{field: f.TopbarWrapBackgroundColour, dst: &result.TopbarWrapBackground},
+		{field: f.TopbarTruncBackgroundColour, dst: &result.TopbarTruncBackground},
+		{field: f.CarouselFocusedColour, dst: &result.CarouselFocused},
+		{field: f.CarouselBlurredColour, dst: &result.CarouselBlurred},
+		{field: f.CarouselBackgroundColour, dst: &result.CarouselBackground},
+		{field: f.CarouselNavBackgroundColour, dst: &result.CarouselNavBackground},
+		{field: f.CarouselHoverColour, dst: &result.CarouselHover},
+		{field: f.CarouselEmptyColour, dst: &result.CarouselEmpty},
+		{field: f.CardHoverBackgroundColour, dst: &result.CardHoverBackground},
+		{field: f.LogPaneBackgroundColour, dst: &result.LogPaneBackground},
+		{field: f.AccordionLabelColour, dst: &result.AccordionLabel},
+		{field: f.AccordionValueColour, dst: &result.AccordionValue},
+		{field: f.AccordionBackgroundColour, dst: &result.AccordionBackground},
+		{field: f.AccordionHeaderBackgroundColour, dst: &result.AccordionHeaderBackground},
+		{
+			field: f.AccordionHeaderHoverBackgroundColour,
+			dst:   &result.AccordionHeaderHoverBackground,
+		},
+		{field: f.BodyBackgroundColour, dst: &result.BodyBackground},
+		{field: f.AboutBackgroundColour, dst: &result.AboutBackground},
+		{field: f.AboutTitleColour, dst: &result.AboutTitleColour},
+		{field: f.AboutArtColour, dst: &result.AboutArtColour},
+		{field: f.AboutTextColour, dst: &result.AboutTextColour},
+		{field: f.AboutLinkColour, dst: &result.AboutLinkColour},
+		{field: f.AboutHintColour, dst: &result.AboutHintColour},
 	}
 
 	for _, o := range overrides {

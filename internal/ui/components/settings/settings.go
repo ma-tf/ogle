@@ -55,7 +55,7 @@ type Model struct {
 	savedTime  time.Time
 }
 
-// New returns a Model initialized from cfg.
+// New returns a Model initialised from cfg.
 func New(th *theme.Theme, cfg config.Config, w, h int) Model {
 	names := theme.BuiltinNames()
 	idx := 0

@@ -21,7 +21,7 @@ Options considered per decision are noted inline.
 whitebox tests are not used. The `export_test.go` pattern was initially adopted
 but has since been replaced with constructor options (`WithCommander`,
 `WithHTTPClient`, `WithReadFile`) and exported pure functions/types
-(e.g. `ParsePsOutput`, `ParseState`, `NormalizePorts`, `ApplyOverrides`,
+(e.g. `ParsePsOutput`, `ParseState`, `NormalisePorts`, `ApplyOverrides`,
 `UserThemeFile`, `ErrUnexpectedStatus`). No `export_test.go` files remain.
 Rationale: forces tests to interact only through the public API, preventing
 tests from encoding implementation details.
