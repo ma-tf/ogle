@@ -3,6 +3,7 @@
 package servicepanel
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -53,7 +54,8 @@ func New(project *domain.Project, th *theme.Theme, w, h, logBufferCap int, opts 
 
 		streamer := logs.New(svc.Name, streamerOpts...)
 
-		hosts[i] = servicehost.New(th, svc, project.Name, w, h, logBufferCap, streamer)
+		hosts[i] = servicehost.New(context.Background(),
+			th, svc, project.Name, w, h, logBufferCap, streamer)
 	}
 
 	return Model{
