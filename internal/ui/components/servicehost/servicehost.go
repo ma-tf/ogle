@@ -20,6 +20,7 @@ const (
 
 // Model wraps a per-service log pane and streamer into a compositor-hostable unit.
 type Model struct {
+	ctx             context.Context
 	def             domain.ServiceDef
 	logPane         logpane.Model
 	streamer        logs.Streamer
@@ -32,6 +33,7 @@ type Model struct {
 
 // New constructs a host for the given service.
 func New(
+	ctx context.Context,
 	th *theme.Theme,
 	def domain.ServiceDef,
 	project string,
@@ -39,6 +41,7 @@ func New(
 	streamer logs.Streamer,
 ) Model {
 	return Model{
+		ctx:             ctx,
 		def:             def,
 		logPane:         logpane.New(th, w, h, logBufferCap, streamer.Lines()),
 		streamer:        streamer,
@@ -178,7 +181,7 @@ func (m Model) retryDelay() time.Duration {
 func (m Model) startStreamer() (Model, tea.Cmd) {
 	m.streamerStarted = true
 	containerName := logs.ContainerName(m.project, m.def.Name, m.def.ContainerName)
-	m.streamer.Start(context.Background(), containerName)
+	m.streamer.Start(m.ctx, containerName)
 
 	return m, m.streamer.Next()
 }
