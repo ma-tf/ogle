@@ -147,6 +147,10 @@ func (m Model) renderFull() string {
 		columns = append(columns, lipgloss.JoinVertical(lipgloss.Top, lines...))
 	}
 
+	if len(columns) < 2 { //nolint:mnd // guard for single-column FullHelp
+		return columns[0]
+	}
+
 	sep := m.th.HelpSep.Render("  ")
 
 	return lipgloss.JoinHorizontal(lipgloss.Top, columns[0], sep,

@@ -95,6 +95,21 @@ func (k narrowKeymap) PinnedHelp() []key.Binding {
 
 var _ helpbar.PinnedKeyMap = narrowKeymap{}
 
+func TestFullHelp_SingleColumn(t *testing.T) {
+	t.Parallel()
+
+	m := helpbar.New(theme.Default())
+	m, _ = m.Update(msgs.BindingsMsg{Keymap: pinnedKeymap{}})
+	m, _ = m.Update(tea.WindowSizeMsg{Width: 100})
+	m, _ = m.Update(helpbar.ToggleMsg{})
+	content := m.View().Content
+
+	assert.NotEmpty(t, content)
+	assert.Contains(t, content, "toggle wrap")
+	assert.Contains(t, content, "toggle help")
+	assert.Contains(t, content, "quit")
+}
+
 func TestInit(t *testing.T) {
 	t.Parallel()
 
