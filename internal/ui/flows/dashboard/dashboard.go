@@ -28,9 +28,7 @@ import (
 	"github.com/ma-tf/ogle/internal/ui/theme"
 )
 
-const (
-	accordionHeight = 8
-)
+const accordionInitHeight = 8 // passed to accordion.New; unused by accordion.View()
 
 // Model is the dashboard flow orchestrator.
 type Model struct {
@@ -80,7 +78,7 @@ func New(
 		zm:              zm,
 		configDir:       configDir,
 		docker:          docker,
-		accordion:       accordion.New(project, w, accordionHeight, th, zm),
+		accordion:       accordion.New(project, w, accordionInitHeight, th, zm),
 		labelsAccordion: labelsaccordion.New(th, w, zm),
 		carousel:        carousel.New(project, w, h, th, zm),
 		panel:           servicepanel.New(project, th, w, h, cfg.LogBufferCap),
@@ -349,11 +347,13 @@ func (m Model) View() tea.View {
 
 	usableH := m.h - m.frameHeight
 
-	if listH+accordionHeight <= usableH {
-		accView := m.accordion.View().Content
+	accView := m.accordion.View().Content
+	accH := lipgloss.Height(accView)
+
+	if listH+accH <= usableH && accH > 0 {
 		accView = lipgloss.NewStyle().
 			Width(listW).
-			Height(accordionHeight).
+			Height(accH).
 			Background(m.th.CarouselBackground).
 			Render(accView)
 		listContent = lipgloss.JoinVertical(lipgloss.Top, listContent, accView)

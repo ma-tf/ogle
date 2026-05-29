@@ -770,6 +770,49 @@ func TestKeymap_FullHelpIncludesF1(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// TestView_AccordionDynamicHeight
+// ---------------------------------------------------------------------------
+
+func TestView_AccordionDynamicHeight(t *testing.T) {
+	t.Parallel()
+
+	t.Run("accordion visible with default vertical space", func(t *testing.T) {
+		t.Parallel()
+
+		mockD, mockP := dockermocks.NewMockDocker(t), parsermocks.NewMockParser(t)
+		m := newModel(t, mockD, mockP)
+
+		assert.Contains(t, m.View().Content, "Service Details")
+	})
+
+	t.Run("accordion hidden when insufficient vertical space", func(t *testing.T) {
+		t.Parallel()
+
+		mockD, mockP := dockermocks.NewMockDocker(t), parsermocks.NewMockParser(t)
+		m := newModel(t, mockD, mockP)
+		m, _ = m.Update(msgs.FrameHeight{Height: 100})
+
+		assert.NotContains(t, m.View().Content, "Service Details")
+	})
+
+	t.Run("accordion uses natural height for guard condition", func(t *testing.T) {
+		t.Parallel()
+
+		mockD, mockP := dockermocks.NewMockDocker(t), parsermocks.NewMockParser(t)
+		m := newModel(t, mockD, mockP)
+
+		// usableH = h - frameHeight = 50 - 33 = 17
+		// Carousel at w=100 renders approximately 10 lines
+		// Accordion (expanded with Image) renders at 6 lines
+		// With natural height: 10 + 6 = 16 <= 17 → accordion fits
+		// With old fixed 8: 10 + 8 = 18 > 17 → accordion would not fit
+		m, _ = m.Update(msgs.FrameHeight{Height: 33})
+
+		assert.Contains(t, m.View().Content, "Service Details")
+	})
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
