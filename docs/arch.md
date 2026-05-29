@@ -57,7 +57,7 @@ internal/
     │       ├── startup.go            # Model: receives FileSelected, emits ProjectLoaded
     │       └── keymap.go             # startup-specific key bindings
     ├── hoverlist/                    # reusable hover-highlight list infrastructure
-    ├── layout/                       # layout constants (FrameHeight)
+    ├── layout/                       # layout constants (FrameHeight as fallback default; components receive dynamic height via msgs.FrameHeight)
     └── theme/                        # Theme type, built-in themes, user theme loading, about theme variables
         ├── theme.go                  # Theme struct (incl. about-specific vars), Load(), override logic
         ├── builtin.go                # Default theme (dark)

@@ -4,7 +4,11 @@
 
 > **Note (implementation status):** `layout.FrameHeight` (aliased as `ChromeHeight` in the ADR body) was extracted as a
 > shared constant at `internal/ui/layout/layout.go`, removing the duplicated `frameHeight` locals from `dashboard`,
-> `startup`, and `watching`. Components now receive raw terminal dimensions and derive their own content size internally.
+> `startup`, and `watching`. The original design specified that components import the shared constant and derive their
+> own usable area internally. In practice, the implementation evolved to use a message-passing approach: `app` computes
+> chrome height dynamically via `computeFrameHeight()` (accounting for compact help, expanded help, and status bar
+> states) and broadcasts it via `msgs.FrameHeight{Height}`. `layout.FrameHeight` now serves as a fallback default at
+> initialization time only. Components that consume `msgs.FrameHeight` include `logpane` and `dashboard`.
 > `servicehost.ServiceName()` and `statusbar.Height()` have been removed. The remaining items (no message
 > reconstruction, pre-resize overflow guard) are also implemented in the current codebase.
 
