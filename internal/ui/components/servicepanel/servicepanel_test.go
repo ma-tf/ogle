@@ -13,6 +13,11 @@ import (
 	"github.com/ma-tf/ogle/internal/ui/theme"
 )
 
+const (
+	testProject = "test"
+	svcName     = "web"
+)
+
 func TestUpdate(t *testing.T) {
 	t.Parallel()
 
@@ -21,7 +26,8 @@ func TestUpdate(t *testing.T) {
 	type testCase struct {
 		name string
 		// arrange
-		setup func(m servicepanel.Model) servicepanel.Model
+		project *domain.Project
+		setup   func(m servicepanel.Model) servicepanel.Model
 		// act
 		msg tea.Msg
 		// assert
@@ -54,13 +60,40 @@ func TestUpdate(t *testing.T) {
 			msg:               theme.Changed{Theme: th},
 			expectedCmdNonNil: false,
 		},
+		{
+			name: "ReportWrapStatus matching service name forwards to correct host",
+			project: &domain.Project{
+				Name: testProject,
+				Services: []domain.ServiceDef{
+					{Name: svcName},
+				},
+			},
+			msg:               msgs.ReportWrapStatus{ServiceName: svcName},
+			expectedCmdNonNil: true,
+		},
+		{
+			name: "ReportWrapStatus non-matching service name is no-op",
+			project: &domain.Project{
+				Name: testProject,
+				Services: []domain.ServiceDef{
+					{Name: svcName},
+				},
+			},
+			msg:               msgs.ReportWrapStatus{ServiceName: "other"},
+			expectedCmdNonNil: false,
+		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			m := servicepanel.New(&domain.Project{}, th, 80, 24, 1000)
+			p := tc.project
+			if p == nil {
+				p = &domain.Project{}
+			}
+
+			m := servicepanel.New(p, th, 80, 24, 1000)
 			_ = m.Init()
 
 			if tc.setup != nil {
@@ -95,19 +128,19 @@ func TestView(t *testing.T) {
 	cases := []testCase{
 		{
 			name:           "empty project renders empty view",
-			project:        &domain.Project{Name: "test"},
+			project:        &domain.Project{Name: testProject},
 			expectedResult: "",
 		},
 		{
 			name: "project with services renders compositor layers",
 			project: &domain.Project{
-				Name: "test",
+				Name: testProject,
 				Services: []domain.ServiceDef{
-					{Name: "web"},
+					{Name: svcName},
 				},
 			},
 			setup: func(m servicepanel.Model) servicepanel.Model {
-				m, _ = m.Update(msgs.ServiceSelected{ServiceName: "web"})
+				m, _ = m.Update(msgs.ServiceSelected{ServiceName: svcName})
 
 				return m
 			},
