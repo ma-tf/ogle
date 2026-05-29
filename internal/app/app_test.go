@@ -50,8 +50,12 @@ func (testKeymap) FullHelp() [][]key.Binding {
 	}
 }
 
-func newModel(t *testing.T) (
-	app.Model, func() error, *dockermocks.MockDocker, *watchermocks.MockWatcher,
+type modelOpts struct {
+	configPath string
+}
+
+func newModel(t *testing.T, opts ...modelOpts) (
+	app.Model, func() error, *dockermocks.MockDocker, *watchermocks.MockWatcher, *theme.Theme,
 ) {
 	t.Helper()
 
@@ -65,16 +69,21 @@ func newModel(t *testing.T) (
 
 	mockWatcher.EXPECT().Close().Return(nil)
 
-	m, cleanup, err := app.New(ctx, cfg, "", "", th, mockDocker, mockParser, mockWatcher)
+	configPath := ""
+	if len(opts) > 0 {
+		configPath = opts[0].configPath
+	}
+
+	m, cleanup, err := app.New(ctx, cfg, configPath, "", th, mockDocker, mockParser, mockWatcher)
 	require.NoError(t, err)
 
-	return m, cleanup, mockDocker, mockWatcher
+	return m, cleanup, mockDocker, mockWatcher, th
 }
 
 func TestInit(t *testing.T) {
 	t.Parallel()
 
-	m, cleanup, mockDocker, mockWatcher := newModel(t)
+	m, cleanup, mockDocker, mockWatcher, _ := newModel(t)
 	defer func() {
 		require.NoError(t, cleanup())
 	}()
@@ -89,7 +98,7 @@ func TestInit(t *testing.T) {
 func TestUpdateQuit(t *testing.T) {
 	t.Parallel()
 
-	m, cleanup, _, _ := newModel(t)
+	m, cleanup, _, _, _ := newModel(t) //nolint:dogsled // unified helper returns 5 values
 	defer func() {
 		require.NoError(t, cleanup())
 	}()
@@ -105,7 +114,7 @@ func TestUpdateQuit(t *testing.T) {
 func TestUpdateFileAvailabilityChanged(t *testing.T) {
 	t.Parallel()
 
-	m, cleanup, _, watcherMock := newModel(t)
+	m, cleanup, _, watcherMock, _ := newModel(t)
 	defer func() {
 		require.NoError(t, cleanup())
 	}()
@@ -121,7 +130,7 @@ func TestUpdateFileAvailabilityChanged(t *testing.T) {
 func TestUpdateFileRemoved(t *testing.T) {
 	t.Parallel()
 
-	m, cleanup, _, _ := newModel(t)
+	m, cleanup, _, _, _ := newModel(t) //nolint:dogsled // unified helper returns 5 values
 	defer func() {
 		require.NoError(t, cleanup())
 	}()
@@ -164,7 +173,7 @@ func TestUpdateFileRemoved(t *testing.T) {
 func TestWatchingKeymapPinnedHelp(t *testing.T) {
 	t.Parallel()
 
-	m, cleanup, _, _ := newModel(t)
+	m, cleanup, _, _, _ := newModel(t) //nolint:dogsled // unified helper returns 5 values
 	defer func() { require.NoError(t, cleanup()) }()
 
 	_, cmd := m.Update(msgs.FileRemoved{File: testComposeFile})
@@ -192,7 +201,7 @@ func TestWatchingKeymapPinnedHelp(t *testing.T) {
 func TestWatchingKeymapShortHelpEmpty(t *testing.T) {
 	t.Parallel()
 
-	m, cleanup, _, _ := newModel(t)
+	m, cleanup, _, _, _ := newModel(t) //nolint:dogsled // unified helper returns 5 values
 	defer func() { require.NoError(t, cleanup()) }()
 
 	_, cmd := m.Update(msgs.FileRemoved{File: testComposeFile})
@@ -211,7 +220,7 @@ func TestWatchingKeymapShortHelpEmpty(t *testing.T) {
 func TestWatchingKeymapFullHelp(t *testing.T) {
 	t.Parallel()
 
-	m, cleanup, _, _ := newModel(t)
+	m, cleanup, _, _, _ := newModel(t) //nolint:dogsled // unified helper returns 5 values
 	defer func() { require.NoError(t, cleanup()) }()
 
 	_, cmd := m.Update(msgs.FileRemoved{File: testComposeFile})
@@ -238,7 +247,7 @@ func TestWatchingKeymapFullHelp(t *testing.T) {
 func TestUpdateFileAvailabilityChangedDuringDashboard(t *testing.T) {
 	t.Parallel()
 
-	m, cleanup, _, watcherMock := newModel(t)
+	m, cleanup, _, watcherMock, _ := newModel(t)
 	defer func() {
 		require.NoError(t, cleanup())
 	}()
@@ -271,7 +280,7 @@ func TestUpdateFileAvailabilityChangedDuringDashboard(t *testing.T) {
 func TestUpdateFileAvailabilityChangedDuringWatching(t *testing.T) {
 	t.Parallel()
 
-	m, cleanup, _, watcherMock := newModel(t)
+	m, cleanup, _, watcherMock, _ := newModel(t)
 	defer func() {
 		require.NoError(t, cleanup())
 	}()
@@ -296,7 +305,7 @@ func TestUpdateFileAvailabilityChangedDuringWatching(t *testing.T) {
 func TestUpdateProjectLoaded(t *testing.T) {
 	t.Parallel()
 
-	m, cleanup, _, _ := newModel(t)
+	m, cleanup, _, _, _ := newModel(t) //nolint:dogsled // unified helper returns 5 values
 	defer func() {
 		require.NoError(t, cleanup())
 	}()
@@ -346,7 +355,7 @@ func TestUpdateProjectLoaded(t *testing.T) {
 func TestView(t *testing.T) {
 	t.Parallel()
 
-	m, cleanup, _, _ := newModel(t)
+	m, cleanup, _, _, _ := newModel(t) //nolint:dogsled // unified helper returns 5 values
 	defer func() {
 		require.NoError(t, cleanup())
 	}()
@@ -354,28 +363,6 @@ func TestView(t *testing.T) {
 	v := m.View()
 	require.NotNil(t, v)
 	assert.NotEmpty(t, v.Content)
-}
-
-func newModelWithConfig(t *testing.T, configPath string) (
-	app.Model, func() error, *theme.Theme,
-) {
-	t.Helper()
-
-	ctx := context.Background()
-	cfg := config.Defaults()
-	th := theme.Default()
-
-	mockDocker := dockermocks.NewMockDocker(t)
-	mockParser := parsermocks.NewMockParser(t)
-	mockWatcher := watchermocks.NewMockWatcher(t)
-	mockWatcher.EXPECT().Close().Return(nil)
-
-	m, cleanup, err := app.New(
-		ctx, cfg, configPath, "", th, mockDocker, mockParser, mockWatcher,
-	)
-	require.NoError(t, err)
-
-	return m, cleanup, th
 }
 
 func TestUpdateSettingsApplied(t *testing.T) {
@@ -410,7 +397,7 @@ func TestUpdateSettingsApplied(t *testing.T) {
 
 			require.NoError(t, config.Save(configPath, config.Defaults()))
 
-			m, cleanup, originalTheme := newModelWithConfig(t, configPath)
+			m, cleanup, _, _, originalTheme := newModel(t, modelOpts{configPath: configPath})
 			defer func() {
 				require.NoError(t, cleanup())
 			}()
@@ -446,7 +433,7 @@ func TestUpdateSettingsAppliedConfigSaveFailure(t *testing.T) {
 	dir := t.TempDir()
 	configPath := filepath.Join(dir, "nonexistent", "config.yaml")
 
-	m, cleanup, originalTheme := newModelWithConfig(t, configPath)
+	m, cleanup, _, _, originalTheme := newModel(t, modelOpts{configPath: configPath})
 	defer func() {
 		require.NoError(t, cleanup())
 	}()
@@ -468,7 +455,7 @@ func TestUpdateSettingsAppliedConfigSaveFailure(t *testing.T) {
 func TestUpdateWindowSize(t *testing.T) {
 	t.Parallel()
 
-	m, cleanup, _, _ := newModel(t)
+	m, cleanup, _, _, _ := newModel(t) //nolint:dogsled // unified helper returns 5 values
 	defer func() {
 		require.NoError(t, cleanup())
 	}()
@@ -606,7 +593,7 @@ func TestViewPhaseContent(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			m, cleanup, _, _ := newModel(t)
+			m, cleanup, _, _, _ := newModel(t)
 			defer func() {
 				require.NoError(t, cleanup())
 			}()
@@ -675,7 +662,7 @@ func TestUpdate(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			m, cleanup, _, _ := newModel(t)
+			m, cleanup, _, _, _ := newModel(t)
 			defer func() {
 				require.NoError(t, cleanup())
 			}()
@@ -780,7 +767,7 @@ func TestUpdateKeyPress(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			m, cleanup, _, _ := newModel(t)
+			m, cleanup, _, _, _ := newModel(t)
 			defer func() { require.NoError(t, cleanup()) }()
 
 			if tc.setup != nil {
@@ -856,7 +843,7 @@ func TestUpdateMouseClick(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			m, cleanup, _, _ := newModel(t)
+			m, cleanup, _, _, _ := newModel(t)
 			defer func() {
 				require.NoError(t, cleanup())
 			}()
