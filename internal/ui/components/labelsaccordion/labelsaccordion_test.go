@@ -19,8 +19,6 @@ const (
 	testLabelKey    = "ogle.foo"
 )
 
-// widthForTerm computes the column width that the labels accordion should use
-// for a given terminal width.
 func widthForTerm(w int) int {
 	listMinTermWidth := 80
 	listRatio := 30
@@ -38,7 +36,7 @@ func TestView_ColumnWidth(t *testing.T) {
 	w := lipgloss.Width(m.View().Content)
 	columnW := widthForTerm(100)
 	assert.Equal(t, columnW, w,
-		"header should render at 30%% column width, not full terminal width")
+		"view should render at 30%% column width, not full terminal width")
 }
 
 func TestView(t *testing.T) {
