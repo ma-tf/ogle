@@ -164,10 +164,6 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 	}
 
-	if m.conn.IsRetryDue(time.Now().UTC()) {
-		cmds = append(cmds, m.docker.Connect(m.ctx))
-	}
-
 	return m, tea.Batch(cmds...)
 }
 

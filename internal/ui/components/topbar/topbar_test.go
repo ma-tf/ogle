@@ -4,6 +4,7 @@ package topbar_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 	zone "github.com/lrstanley/bubblezone/v2"
@@ -175,6 +176,49 @@ func TestUpdate(t *testing.T) { //nolint:funlen // long table-driven test
 			}
 		})
 	}
+}
+
+func TestUpdateNoConnectForNonDaemonTickWhenRetryDue(t *testing.T) {
+	t.Parallel()
+
+	// Arrange a machine where retry IS due
+	conn := connection.New()
+	conn.HandleUnavailable(time.Now().Add(-20 * time.Second))
+
+	mockD := mocks.NewMockDocker(t)
+
+	m := topbar.New(context.Background(), conn, theme.Default(), mockD, zone.New())
+
+	// Act: send a non-DaemonTick message — the post-switch check MUST NOT
+	// call Connect when retry is due
+	_, cmd := m.Update(msgs.TopbarContext{Phase: "dashboard", File: "compose.yaml"})
+
+	// Assert: no command should be produced
+	require.Nil(t, cmd)
+}
+
+func TestUpdateDaemonTickWhenRetryDue(t *testing.T) {
+	t.Parallel()
+
+	// Arrange a machine where retry IS due
+	conn := connection.New()
+	conn.HandleUnavailable(time.Now().Add(-20 * time.Second))
+
+	mockD := mocks.NewMockDocker(t)
+	mockD.EXPECT().Connect(mock.Anything).
+		RunAndReturn(func(_ context.Context) tea.Cmd {
+			return func() tea.Msg { return msgs.DaemonConnected{} }
+		}).Once()
+
+	m := topbar.New(context.Background(), conn, theme.Default(), mockD, zone.New())
+
+	// Act: send DaemonTick — this should trigger Connect
+	_, cmd := m.Update(msgs.DaemonTick{})
+
+	// Assert
+	require.NotNil(t, cmd)
+	result := cmd()
+	require.Equal(t, msgs.DaemonConnected{}, result)
 }
 
 //nolint:funlen,goconst // long test with many table-driven cases
