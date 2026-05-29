@@ -7,4 +7,4 @@ package layout
 // consumed by the app-level chrome (topbar + bottom bar). Components use
 // this value until they receive a msgs.FrameHeight message with the actual
 // current chrome height.
-const FrameHeight = 3
+const FrameHeight = 2
