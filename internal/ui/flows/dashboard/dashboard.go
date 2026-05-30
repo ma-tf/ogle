@@ -107,9 +107,7 @@ func (m Model) Init() tea.Cmd {
 
 // Update handles dashboard-level messages.
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
-	var carouselCmd, panCmd, settingsCmd, accCmd, labelsAccordionCmd, polledCmd tea.Cmd
-
-	var topbarCtxCmd, reportWrapCmd, inspectCmd tea.Cmd
+	var carouselCmd, panCmd, settingsCmd, accCmd, labelsAccordionCmd, selectedCmd, polledCmd tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -154,7 +152,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		return m, nil
 
 	case msgs.ServiceSelected:
-		m, topbarCtxCmd, reportWrapCmd, inspectCmd = m.handleServiceSelected(msg)
+		m, selectedCmd = m.handleServiceSelected(msg)
 
 	case msgs.ServicesPolled:
 		m, polledCmd = m.handleServicesPolled(msg)
@@ -178,9 +176,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		carouselCmd,
 		panCmd,
 		settingsCmd,
-		topbarCtxCmd,
-		reportWrapCmd,
-		inspectCmd,
+		selectedCmd,
 		polledCmd,
 	)
 }
@@ -317,10 +313,10 @@ func (m Model) handleFileAvailabilityChanged(files []string) (Model, tea.Cmd) {
 
 // handleServiceSelected updates the selected service name and returns
 // TopbarContext, ReportWrapStatus, and container label inspection commands.
-func (m Model) handleServiceSelected(msg msgs.ServiceSelected) (Model, tea.Cmd, tea.Cmd, tea.Cmd) {
+func (m Model) handleServiceSelected(msg msgs.ServiceSelected) (Model, tea.Cmd) {
 	m.selectedName = msg.ServiceName
 
-	return m,
+	return m, tea.Batch(
 		func() tea.Msg {
 			return msgs.TopbarContext{
 				Phase:   "dashboard",
@@ -331,7 +327,8 @@ func (m Model) handleServiceSelected(msg msgs.ServiceSelected) (Model, tea.Cmd, 
 		func() tea.Msg {
 			return msgs.ReportWrapStatus(msg)
 		},
-		m.inspectSelected()
+		m.inspectSelected(),
+	)
 }
 
 // handleSettingsApplied updates theme and config from settings changes.
