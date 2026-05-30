@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/key"
@@ -57,7 +58,17 @@ const (
 	chromeTopbar      = 1 // topbar is always 1 line
 	chromeStatusbar   = 1 // statusbar is 1 line
 	chromeCompactHelp = 1 // compact helpbar is 1 line
+
+	// motionThrottleInterval is the minimum interval between processed mouse-motion
+	// events. Events arriving faster are dropped to reduce render pressure.
+	motionThrottleInterval = 33 * time.Millisecond
 )
+
+type viewCache struct {
+	gen        uint64
+	lastGen    uint64
+	cachedView tea.View
+}
 
 // Model is the root flow orchestrator.
 type Model struct {
@@ -87,6 +98,8 @@ type Model struct {
 	helpExpanded    bool
 	keymap          help.KeyMap
 	lastFrameHeight int
+	lastMotionTime  time.Time
+	cache           *viewCache
 }
 
 // New constructs the app Model. Watcher creation is synchronous; if it
@@ -169,6 +182,12 @@ func New(
 		helpExpanded:    false,
 		keymap:          nil,
 		lastFrameHeight: 0,
+		lastMotionTime:  time.Time{},
+		cache: &viewCache{
+			gen:        1,
+			lastGen:    0,
+			cachedView: tea.View{}, //nolint:exhaustruct // zero value is sentinel for "not yet cached"
+		},
 	}, wtr.Close, nil
 }
 
@@ -192,7 +211,23 @@ func (m Model) Init() tea.Cmd {
 
 // Update drives the root state machine. Messages are either handled by app
 // directly or dispatched to the active phase model.
+//
+// Mouse-motion events are throttled to motionThrottleInterval (~30 fps) to
+// prevent excessive render cycles. Throttled events avoid a full dispatch,
+// so the model is returned unchanged and View() returns its cached output.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if m, cmd, handled := m.tryThrottleMotion(msg); handled {
+		return m, cmd
+	}
+
+	m.cache.gen++
+
+	return m.handleMessage(msg)
+}
+
+// handleMessage routes a non-throttled message to the appropriate handler or
+// dispatches it to sub-components.
+func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
@@ -251,6 +286,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m.dispatchToComponents(msg)
+}
+
+// tryThrottleMotion checks whether msg is a MouseMotionMsg that falls within
+// the throttle window. If so it drops it (returns handled=true) so the caller
+// skips both gen-bump and dispatch. For a non-throttled motion event it bumps
+// the gen and dispatches.
+func (m Model) tryThrottleMotion(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
+	if _, ok := msg.(tea.MouseMotionMsg); !ok {
+		return m, nil, false
+	}
+
+	if !m.lastMotionTime.IsZero() && time.Since(m.lastMotionTime) < motionThrottleInterval {
+		return m, nil, true
+	}
+
+	m.lastMotionTime = time.Now()
+	m.cache.gen++
+
+	model, cmd := m.dispatchToComponents(msg)
+
+	return model, cmd, true
 }
 
 func (m Model) handleProfilesDumped(msg profiling.ProfilesDumped) (tea.Model, tea.Cmd) {
@@ -484,6 +540,10 @@ func (m Model) frameHeightCmd() (Model, tea.Cmd) {
 
 // View composes the top bar, active phase body, status bar, and help bar into a unified frame.
 func (m Model) View() tea.View {
+	if m.cache.lastGen > 0 && m.cache.gen == m.cache.lastGen {
+		return m.cache.cachedView
+	}
+
 	var body tea.View
 
 	switch m.phase {
@@ -541,6 +601,9 @@ func (m Model) View() tea.View {
 	v.Content = m.zm.Scan(v.Content)
 	v.AltScreen = true
 	v.MouseMode = tea.MouseModeAllMotion
+
+	m.cache.cachedView = v
+	m.cache.lastGen = m.cache.gen
 
 	return v
 }
