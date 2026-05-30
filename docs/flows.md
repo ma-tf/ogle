@@ -190,7 +190,7 @@ The dashboard is a flat model (no sub-states). It:
 - Handles `FileAvailabilityChanged` — if the project file is still present, re-parses and updates; if absent, sends a
 msg that triggers `app` to transition to `PhaseWatching`
 - Forwards all messages to its sub-models (accordion, labelsaccordion, carousel, panel, settings)
-- On `ServiceSelected` when runtime data is available (non-nil), triggers `docker.Inspect` to fetch container labels for `labelsaccordion`
+- On `ServiceSelected` or `ServicesPolled` when runtime data is available (non-nil), triggers `docker.Inspect` to fetch container labels for `labelsaccordion`
 - Handles `c` key — emits `ClearLogBuffer{ServiceName}` to clear the selected service's log buffer
 - Toggles settings overlay via `SettingsVisibilityChanged`
 
@@ -219,7 +219,7 @@ msg that triggers `app` to transition to `PhaseWatching`
 | `ServiceActionCompleted{Err}`    | `svcdocker`                     | `dashboard` (error: stderr wrapped into error, `ExitError` preserved with exit code), `carousel/card` |
 | `LogLinesAvailable{}`            | `LogStreamer`                   | `logpane` (via `servicehost`)               |
 | `LogStreamError{Err}`            | `LogStreamer`                   | `servicehost` (closes streamer, schedules retry via `tea.Tick(2s, LogStreamRetryTick{})`) |
-| `LogStreamContainerNotFound`     | `LogStreamer`                   | `servicehost` (closes streamer, schedules retry via `tea.Tick(2s, LogStreamRetryTick{})`) |
+| `LogStreamContainerNotFound`     | `LogStreamer`                   | `servicehost` (closes streamer, resets retry count — no retry scheduled) |
 | `LogStreamRetryTick{}`           | `servicehost` (timer)           | `servicehost` (restarts streamer after error) |
 | `ServiceSelected{ServiceName}`   | `carousel` (hover/focus)        | `dashboard`, `accordion`, `servicehost`     |
 | `SettingsApplied{Theme,LBCap}`   | `settings`                      | `app` (loads theme, saves config, emits `theme.Changed`)                |
@@ -265,7 +265,7 @@ Unavailable
 Key behaviours:
 
 - Grace period: 10 seconds from `Init()`; if no `DaemonConnected` arrives in that window, transitions to Unavailable
-- Retry: every 1 second after entering Unavailable; retry interval is 10 seconds (configurable via `connection.RetryInterval`)
+- Retry: every 1 second after entering Unavailable; retry interval is 10 seconds (defined as `connection.RetryInterval` const)
 - Health polling: every 2 seconds when Connected; fires `DaemonPoll` which triggers `docker.Connect()` as a health check
 - The topbar renders the daemon status (Connecting/Connected/Unavailable) in the top-right of the application frame
 - The retry countdown is rendered by the topbar, not the Service Inspector
