@@ -79,7 +79,7 @@ func CatppuccinoLatte() *Theme {
 		CarouselNavBackground:          latteCrust,
 		CarouselHover:                  latteText,
 		CarouselEmpty:                  latteSurface0,
-		CardHoverBackground:            latteSurface0,
+		CardHoverBackground:            latteMauve,
 		LogPaneBackground:              latteCrust,
 		BodyBackground:                 latteBase,
 		AboutBackground:                latteMantle,

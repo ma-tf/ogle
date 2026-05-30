@@ -20,6 +20,36 @@ func builtinThemeNames() []string {
 	}
 }
 
+func TestCardHoverBackgroundIsPurple(t *testing.T) {
+	t.Parallel()
+
+	type testCase struct {
+		name      string
+		construct func() *theme.Theme
+	}
+
+	for _, tc := range []testCase{
+		{name: "default", construct: theme.Default},
+		{name: "default_light", construct: theme.DefaultLight},
+		{name: "catppuccino_frappe", construct: theme.CatppuccinoFrappe},
+		{name: "catppuccino_latte", construct: theme.CatppuccinoLatte},
+		{name: "catppuccino_macchiato", construct: theme.CatppuccinoMacchiato},
+		{name: "catppuccino_mocha", construct: theme.CatppuccinoMocha},
+		{name: "solarized_dark", construct: theme.SolarizedDark},
+		{name: "solarized_light", construct: theme.SolarizedLight},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			th := tc.construct()
+			require.NotNil(t, th)
+
+			assert.NotEqual(t, th.HoverBackground, th.CardHoverBackground,
+				"CardHoverBackground should differ from HoverBackground")
+		})
+	}
+}
+
 func TestColourForState(t *testing.T) {
 	t.Parallel()
 

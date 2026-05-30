@@ -37,6 +37,7 @@ var (
 	defaultBrightCyan    = lipgloss.Color("#5fafd7")
 	defaultBrightWhite   = lipgloss.Color("#ffffff")
 	defaultDarkGrey      = lipgloss.Color("#333333")
+	defaultPurple        = lipgloss.Color("#5f3f6f")
 )
 
 // Default returns the default built-in theme.
@@ -85,7 +86,7 @@ func Default() *Theme {
 		CarouselNavBackground:          defaultBlack,
 		CarouselHover:                  defaultBrightWhite,
 		CarouselEmpty:                  defaultDarkGrey,
-		CardHoverBackground:            defaultDarkGrey,
+		CardHoverBackground:            defaultPurple,
 		LogPaneBackground:              defaultBlack,
 		BodyBackground:                 defaultBlack,
 		AboutBackground:                defaultBlack,

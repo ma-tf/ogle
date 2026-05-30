@@ -46,7 +46,7 @@ func SolarizedLight() *Theme {
 		CarouselNavBackground:          solarizedBase3,
 		CarouselHover:                  solarizedBase00,
 		CarouselEmpty:                  solarizedBase2,
-		CardHoverBackground:            solarizedBase2,
+		CardHoverBackground:            solarizedViolet,
 		LogPaneBackground:              solarizedBase3,
 		BodyBackground:                 solarizedBase3,
 		AboutBackground:                solarizedBase2,

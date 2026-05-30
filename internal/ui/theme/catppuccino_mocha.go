@@ -79,7 +79,7 @@ func CatppuccinoMocha() *Theme {
 		CarouselNavBackground:          mochaCrust,
 		CarouselHover:                  mochaText,
 		CarouselEmpty:                  mochaSurface0,
-		CardHoverBackground:            mochaSurface0,
+		CardHoverBackground:            mochaMauve,
 		LogPaneBackground:              mochaCrust,
 		BodyBackground:                 mochaBase,
 		AboutBackground:                mochaMantle,
