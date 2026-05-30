@@ -62,7 +62,7 @@ overflow.
 
 ## Consequences
 
-- `layout.ChromeHeight` (2 lines: topbar + helpbar) is a shared layout policy constant for the always-present chrome. It
+- `layout.FrameHeight` (2 lines: topbar + helpbar) is a shared layout policy constant for the always-present chrome. It
 is removed from `dashboard`, `startup`, and `watching` as duplicated local constants. Components that make height-based
 layout decisions (e.g. `dashboard`, `logpane`) import the shared value and derive their own usable area internally,
 guarding with `max(0, ...)` to avoid negative dimensions on small terminals.

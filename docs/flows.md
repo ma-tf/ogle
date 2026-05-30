@@ -117,7 +117,7 @@ app.Update(msg)
 ├── theme.Changed                → update pointer, forward to active sub-model
 ├── msgs.SettingsApplied         → load theme, update config, save config, emit theme.Changed (not forwarded)
 ├── msgs.BindingsMsg             → store keymap for computeFrameHeight
-├── tea.KeyPressMsg              → handleKeyPress (help toggle → emit msgs.FrameHeight, about overlay F1/esc/q, quit, profile)
+├── tea.KeyPressMsg              → handleKeyPress (help toggle → emit msgs.FrameHeight, about overlay F1/esc/q, quit, `ctrl+p` → 30s CPU profile dump)
 ├── tea.MouseClickMsg            → handleMouseClick (brand zone → about overlay)
 ├── msgs.AboutVisibilityChanged  → track showingAbout flag
 └── other msgs                   → forward to active sub-model (emits msgs.FrameHeight when chrome height changes)
@@ -217,10 +217,10 @@ The dashboard is a flat model (no sub-states). It:
 | `ServiceStart`                   | `carousel/card` (user action)   | `dashboard` → `handleServiceAction`         |
 | `ServiceRestart`                 | `carousel/card` (user action)   | `dashboard` → `handleServiceAction`         |
 | `ServiceRebuild`                 | `carousel/card` (user action)   | `dashboard` → `handleServiceAction`         |
-| `ServiceActionCompleted{Err}`    | `svcdocker`                     | `dashboard` (error: stderr wrapped into error, `ExitError` preserved with exit code), `carousel/card` |
-| `LogLinesAvailable{}`            | `LogStreamer`                   | `logpane` (via `servicehost`)               |
-| `LogStreamError{Err}`            | `LogStreamer`                   | `servicehost` (closes streamer, schedules retry via `tea.Tick(2s, LogStreamRetryTick{})`) |
-| `LogStreamContainerNotFound`     | `LogStreamer`                   | `servicehost` (closes streamer, resets retry count — no retry scheduled) |
+| `ServiceActionCompleted{ServiceName,Action,Err}` | `svcdocker`                     | `dashboard` (error: stderr wrapped into error, `ExitError` preserved with exit code), `carousel/card` |
+| `LogLinesAvailable{ServiceName}`  | `LogStreamer`                   | `logpane` (via `servicehost`)               |
+| `LogStreamError{Err,ServiceName}`| `LogStreamer`                   | `servicehost` (closes streamer, schedules retry with exponential backoff 2s→30s cap via `LogStreamRetryTick{}`) |
+| `LogStreamContainerNotFound{ServiceName}` | `LogStreamer`                   | `servicehost` (closes streamer, resets retry count — no retry scheduled) |
 | `LogStreamRetryTick{}`           | `servicehost` (timer)           | `servicehost` (restarts streamer after error) |
 | `ServiceSelected{ServiceName}`   | `carousel` (hover/focus)        | `dashboard`, `accordion`, `servicehost`     |
 | `SettingsApplied{Theme,LBCap}`   | `settings`                      | `app` (loads theme, saves config, emits `theme.Changed`)                |
@@ -229,6 +229,7 @@ The dashboard is a flat model (no sub-states). It:
 | `ContainerLabelsPolled{Labels,Err}` | `docker.Inspect`                | `dashboard`, `labelsaccordion`              |
 | `ToggleLogWrap`                  | `dashboard` (keybinding)        | `logpane`                                   |
 | `LogWrapStatus{On,Overflow,ServiceName}` | `logpane` (via `servicehost`) | `topbar` (filters by active service)        |
+| `ReportWrapStatus{ServiceName}` | `dashboard` (on `ServiceSelected`) | `servicehost` → `logpane` (triggers current `LogWrapStatus` emission for badge sync) |
 | `ClearLogBuffer{ServiceName}`    | `dashboard` (keybinding `c`)    | `logpane` (clears lines, drains chan, resets viewport), `servicehost` (routes by name) |
 | `BindingsMsg{Keymap}`            | various flows                   | `app` (stores keymap for `computeFrameHeight`), `helpbar`           |
 | `DisplayError{Err}`              | any component                   | `statusbar` (auto-clear after 3s)           |
@@ -271,7 +272,7 @@ Key behaviours:
 - Health polling: every 2 seconds when Connected; fires `DaemonPoll` which triggers `docker.Connect()` as a health check
 - The topbar renders the daemon status (Connecting/Connected/Unavailable) in the top-right of the application frame
 - The retry countdown is rendered by the topbar, not the Service Inspector
-- The topbar renders wrap/truncation badges between the context text and the daemon status: `WRAP` (green background)
+- The topbar renders wrap/truncation badges between the context text and the daemon status: `WRAP` (amber background)
  when soft wrap is on, `>>` (amber background) when the log viewport has overflow content. Only one badge is shown at a
   time; wrap takes precedence over overflow.
 - The topbar filters `LogWrapStatus` by `ServiceName`: only messages where `ServiceName` matches `selectedService` are
