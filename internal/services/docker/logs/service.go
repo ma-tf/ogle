@@ -21,7 +21,7 @@ import (
 
 const (
 	socketPath     = "/var/run/docker.sock"
-	channelCap     = 64
+	channelCap     = 1
 	lineBufferCap  = 5000
 	tailLines      = "1000"
 	errorBodyLimit = 512

@@ -17,6 +17,12 @@ import (
 	"github.com/ma-tf/ogle/internal/ui/theme"
 )
 
+type viewCache struct {
+	gen        uint64
+	lastGen    uint64
+	cachedView tea.View
+}
+
 // Option configures a Model.
 type Option func(*Model)
 
@@ -35,6 +41,7 @@ type Model struct {
 	theme          *theme.Theme
 	pollerStarted  bool
 	streamerClient *http.Client
+	cache          viewCache
 }
 
 // New constructs a Model with one host per project service.
@@ -63,6 +70,11 @@ func New(project *domain.Project, th *theme.Theme, w, h, logBufferCap int, opts 
 		theme:          th,
 		pollerStarted:  false,
 		streamerClient: m.streamerClient,
+		cache: viewCache{
+			gen:        1,
+			lastGen:    0,
+			cachedView: tea.View{}, //nolint:exhaustruct // zero value is sentinel for "not yet cached"
+		},
 	}
 }
 
@@ -83,6 +95,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case theme.Changed:
 		m.theme = msg.Theme
+		m.cache.gen++
 
 	case msgs.DaemonConnected:
 		if !m.pollerStarted {
@@ -92,6 +105,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	case msgs.StatePollTick:
 		cmds = append(cmds, m.pollStateCmd())
+
+	case msgs.ServiceSelected:
+		m.cache.gen++
 	}
 
 	for i := range m.hosts {
@@ -106,12 +122,20 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 // View renders all hosts as compositor layers.
 func (m Model) View() tea.View {
+	if m.cache.lastGen > 0 && m.cache.gen == m.cache.lastGen {
+		return m.cache.cachedView
+	}
+
 	lyrs := make([]*lipgloss.Layer, len(m.hosts))
 	for i, h := range m.hosts {
 		lyrs[i] = lipgloss.NewLayer(h.View().Content).X(0).Y(0).Z(i)
 	}
 
-	return tea.NewView(lipgloss.NewCompositor(lyrs...).Render())
+	v := tea.NewView(lipgloss.NewCompositor(lyrs...).Render())
+	m.cache.cachedView = v
+	m.cache.lastGen = m.cache.gen
+
+	return v
 }
 
 func (m Model) pollStateCmd() tea.Cmd {
