@@ -33,8 +33,8 @@ internal/
     ├── colourutil/                   # colour utilities (Brighten)
     ├── components/
     │   ├── accordion/                # Service Inspector — service details accordion (name, image, ports, state, age)
+    │   │   └── value/                # scroll-animated value display
     │   ├── labelsaccordion/          # Service Inspector — container labels accordion
-    │   ├── accordion/value/          # scroll-animated value display
     │   ├── carousel/                 # service card grid with pagination, focus, hover
     │   │   ├── carousel.go
     │   │   ├── keymap.go

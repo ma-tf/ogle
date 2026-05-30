@@ -8,7 +8,7 @@ ADR numbering jumped from 0010 (unit test conventions) to 0012 (raw dimensions a
 with no ADR-0011. This ADR fills that gap and documents the findings of the documentation audit
 performed by the Scrivener tool (issue 110).
 
-## Decisions
+## Decision
 
 - No architectural decisions were recorded between ADR-0010 and ADR-0012 that warranted a separate ADR.
   The jump in numbering was an oversight.
