@@ -2,21 +2,33 @@ package labelsaccordion_test
 
 import (
 	"testing"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	zone "github.com/lrstanley/bubblezone/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ma-tf/ogle/internal/msgs"
+	"github.com/ma-tf/ogle/internal/ui/components/accordion/value"
 	"github.com/ma-tf/ogle/internal/ui/components/labelsaccordion"
 	"github.com/ma-tf/ogle/internal/ui/theme"
 )
 
 const (
-	collapsedHeader = "▶ Labels"
-	testLabelValue  = "bar"
-	testLabelKey    = "ogle.foo"
+	collapsedHeader  = "▶ Labels"
+	zoneLabelsHeader = "labels-header"
+	testLabelValue   = "bar"
+	testLabelKey     = "ogle.foo"
+	testKey1         = "key1"
+	testVal1         = "value1"
+	testKey2         = "key2"
+	testVal2         = "value2"
+	testLongKey      = "a-very-long-label-key-that-exceeds-the-cap"
+	testFoo          = "foo"
+	testShortVal     = "short"
+	testLongVal      = "a-long-value-that-requires-scrolling"
 )
 
 func widthForTerm(w int) int {
@@ -25,6 +37,27 @@ func widthForTerm(w int) int {
 	pctDivisor := 100
 
 	return max(w, listMinTermWidth) * listRatio / pctDivisor
+}
+
+func expandAccordion(
+	t *testing.T,
+	m labelsaccordion.Model,
+	zm *zone.Manager,
+) (labelsaccordion.Model, tea.Cmd) {
+	t.Helper()
+
+	view := m.View()
+	zm.Scan(view.Content)
+
+	require.Eventually(t, func() bool {
+		zi := zm.Get(zoneLabelsHeader)
+
+		return zi != nil && !zi.IsZero()
+	}, time.Second, 10*time.Millisecond, "labels header zone should become available")
+
+	zi := zm.Get(zoneLabelsHeader)
+
+	return m.Update(tea.MouseClickMsg{X: zi.StartX, Y: zi.StartY})
 }
 
 func TestView_ColumnWidth(t *testing.T) {
@@ -39,15 +72,13 @@ func TestView_ColumnWidth(t *testing.T) {
 		"view should render at 30%% column width, not full terminal width")
 }
 
-func TestView(t *testing.T) {
+func TestView_CollapsedStates(t *testing.T) {
 	t.Parallel()
 
 	type testCase struct {
-		name string
-		// arrange
-		setup func() labelsaccordion.Model
-		// assert
-		expectedResult string
+		name   string
+		setup  func() labelsaccordion.Model
+		expect string
 	}
 
 	cases := []testCase{
@@ -56,26 +87,26 @@ func TestView(t *testing.T) {
 			setup: func() labelsaccordion.Model {
 				return labelsaccordion.New(theme.Default(), 0, nil)
 			},
-			expectedResult: "",
+			expect: "",
 		},
 		{
 			name: "collapsed indicator by default",
 			setup: func() labelsaccordion.Model {
 				return labelsaccordion.New(theme.Default(), 100, nil)
 			},
-			expectedResult: collapsedHeader,
+			expect: collapsedHeader,
 		},
 		{
 			name: "header visible when labels received but collapsed",
 			setup: func() labelsaccordion.Model {
 				m := labelsaccordion.New(theme.Default(), 100, nil)
 				m, _ = m.Update(msgs.ContainerLabelsPolled{
-					Labels: map[string]string{"ogle.foo": testLabelValue},
+					Labels: map[string]string{testLabelKey: testLabelValue},
 				})
 
 				return m
 			},
-			expectedResult: collapsedHeader,
+			expect: collapsedHeader,
 		},
 		{
 			name: "header visible on error",
@@ -85,30 +116,30 @@ func TestView(t *testing.T) {
 
 				return m
 			},
-			expectedResult: collapsedHeader,
+			expect: collapsedHeader,
 		},
 		{
-			name: "header visible when no ogle labels",
+			name: "header visible when no labels",
 			setup: func() labelsaccordion.Model {
 				m := labelsaccordion.New(theme.Default(), 100, nil)
 				m, _ = m.Update(msgs.ContainerLabelsPolled{Labels: nil})
 
 				return m
 			},
-			expectedResult: collapsedHeader,
+			expect: collapsedHeader,
 		},
 		{
 			name: "header visible after service switch clears labels",
 			setup: func() labelsaccordion.Model {
 				m := labelsaccordion.New(theme.Default(), 100, nil)
 				m, _ = m.Update(msgs.ContainerLabelsPolled{
-					Labels: map[string]string{"ogle.foo": testLabelValue},
+					Labels: map[string]string{testLabelKey: testLabelValue},
 				})
 				m, _ = m.Update(msgs.ServiceSelected{ServiceName: "other"})
 
 				return m
 			},
-			expectedResult: "▶ Labels",
+			expect: collapsedHeader,
 		},
 	}
 
@@ -119,25 +150,108 @@ func TestView(t *testing.T) {
 			m := tc.setup()
 			_ = m.Init()
 
-			if tc.expectedResult == "" {
+			if tc.expect == "" {
 				assert.Empty(t, m.View().Content)
 			} else {
-				assert.Contains(t, m.View().Content, tc.expectedResult)
+				assert.Contains(t, m.View().Content, tc.expect)
 			}
 		})
 	}
+}
+
+func TestView_ExpandedStates(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name   string
+		setup  func(*testing.T) labelsaccordion.Model
+		expect string
+	}{
+		{
+			name: "key visible when expanded",
+			//nolint:thelper // setup factory, not a test helper
+			setup: func(t *testing.T) labelsaccordion.Model {
+				zm := zone.New()
+				m := labelsaccordion.New(theme.Default(), 200, zm)
+				m, _ = m.Update(msgs.ContainerLabelsPolled{
+					Labels: map[string]string{testKey1: testVal1, testKey2: testVal2},
+				})
+				m, _ = expandAccordion(t, m, zm)
+
+				return m
+			},
+			expect: testKey1,
+		},
+		{
+			name: "value visible when expanded",
+			//nolint:thelper // setup factory, not a test helper
+			setup: func(t *testing.T) labelsaccordion.Model {
+				zm := zone.New()
+				m := labelsaccordion.New(theme.Default(), 200, zm)
+				m, _ = m.Update(msgs.ContainerLabelsPolled{
+					Labels: map[string]string{testKey1: testVal1, testKey2: testVal2},
+				})
+				m, _ = expandAccordion(t, m, zm)
+
+				return m
+			},
+			expect: testVal2,
+		},
+		{
+			name: "expanded header indicator",
+			//nolint:thelper // setup factory, not a test helper
+			setup: func(t *testing.T) labelsaccordion.Model {
+				zm := zone.New()
+				m := labelsaccordion.New(theme.Default(), 200, zm)
+				m, _ = m.Update(msgs.ContainerLabelsPolled{
+					Labels: map[string]string{testKey1: testVal1},
+				})
+				m, _ = expandAccordion(t, m, zm)
+
+				return m
+			},
+			expect: "▼ Labels",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			m := tc.setup(t)
+			_ = m.Init()
+
+			assert.Contains(t, m.View().Content, tc.expect)
+		})
+	}
+}
+
+func TestView_KeyTruncation(t *testing.T) {
+	t.Parallel()
+
+	zm := zone.New()
+	m := labelsaccordion.New(theme.Default(), 200, zm)
+	_ = m.Init()
+
+	m, _ = m.Update(msgs.ContainerLabelsPolled{
+		Labels: map[string]string{
+			testLongKey: testVal1,
+			testKey2:    testVal2,
+		},
+	})
+	m, _ = expandAccordion(t, m, zm)
+
+	assert.Contains(t, m.View().Content, "…",
+		"long key should be truncated with ellipsis")
 }
 
 func TestUpdate(t *testing.T) {
 	t.Parallel()
 
 	type testCase struct {
-		name string
-		// arrange
-		setup func() labelsaccordion.Model
-		// act
-		msg tea.Msg
-		// assert
+		name        string
+		setup       func() labelsaccordion.Model
+		msg         tea.Msg
 		expectedMsg tea.Msg
 	}
 
@@ -202,4 +316,85 @@ func TestUpdate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestUpdate_ContainerLabelsPolled_Expanded_ReturnsStartMsg(t *testing.T) {
+	t.Parallel()
+
+	zm := zone.New()
+	m := labelsaccordion.New(theme.Default(), 100, zm)
+	_ = m.Init()
+
+	m, _ = m.Update(msgs.ContainerLabelsPolled{
+		Labels: map[string]string{testFoo: testShortVal},
+	})
+
+	m, expandCmd := expandAccordion(t, m, zm)
+	require.NotNil(t, expandCmd, "expand should emit a command")
+
+	_, ok := expandCmd().(value.StartMsg)
+	require.True(t, ok, "expand cmd should be value.StartMsg")
+
+	_, cmd := m.Update(msgs.ContainerLabelsPolled{
+		Labels: map[string]string{testFoo: testLongVal},
+	})
+	require.NotNil(t, cmd, "content change while expanded should emit StartMsg")
+	require.IsType(t, value.StartMsg{}, cmd())
+}
+
+func TestUpdate_ContainerLabelsPolled_SameLabels_SkipsRecompute(t *testing.T) {
+	t.Parallel()
+
+	zm := zone.New()
+	m := labelsaccordion.New(theme.Default(), 100, zm)
+	_ = m.Init()
+
+	m, _ = m.Update(msgs.ContainerLabelsPolled{
+		Labels: map[string]string{testFoo: testShortVal},
+	})
+
+	m, _ = expandAccordion(t, m, zm)
+
+	_, cmd := m.Update(msgs.ContainerLabelsPolled{
+		Labels: map[string]string{testFoo: testShortVal},
+	})
+	require.Nil(t, cmd, "same labels should not emit StartMsg or recompute values")
+}
+
+func TestUpdate_MouseClick_Expand_EmitsStartMsg(t *testing.T) {
+	t.Parallel()
+
+	zm := zone.New()
+	m := labelsaccordion.New(theme.Default(), 100, zm)
+	_ = m.Init()
+
+	m, _ = m.Update(msgs.ContainerLabelsPolled{
+		Labels: map[string]string{testLabelKey: testLabelValue},
+	})
+
+	_, cmd := expandAccordion(t, m, zm)
+	require.NotNil(t, cmd, "expand should emit StartMsg")
+
+	msg := cmd()
+	require.IsType(t, value.StartMsg{}, msg)
+	sm, ok := msg.(value.StartMsg)
+	require.True(t, ok)
+	require.Equal(t, 1, sm.Gen, "first expand should emit scrollGen=1")
+}
+
+func TestUpdate_Collapse_DoesNotEmitStartMsg(t *testing.T) {
+	t.Parallel()
+
+	zm := zone.New()
+	m := labelsaccordion.New(theme.Default(), 100, zm)
+	_ = m.Init()
+
+	m, _ = m.Update(msgs.ContainerLabelsPolled{
+		Labels: map[string]string{testLabelKey: testLabelValue},
+	})
+
+	m, _ = expandAccordion(t, m, zm)
+
+	_, cmd := expandAccordion(t, m, zm)
+	require.Nil(t, cmd, "collapse should not emit StartMsg")
 }
