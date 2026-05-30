@@ -4,7 +4,7 @@ Print version information
 
 ## Synopsis
 
-Display the version, commit hash, build date, and ASCII art logo of ogle.
+Display the version, commit hash, and build date of ogle.
 
 ```sh
 ogle version [flags]

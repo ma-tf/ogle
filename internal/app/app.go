@@ -192,11 +192,7 @@ func (m Model) Init() tea.Cmd {
 
 // Update drives the root state machine. Messages are either handled by app
 // directly or dispatched to the active phase model.
-//
-//nolint:funlen // long multi-branch switch
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var topbarCmd, helpbarCmd, statusbarCmd, aboutCmd, frameCmd tea.Cmd
-
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
@@ -225,40 +221,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.theme = msg.Theme
 
 	case profiling.ProfilesDumped:
-		if msg.Err != nil {
-			return m, func() tea.Msg {
-				return msgs.DisplayError{
-					Err: fmt.Sprintf("profiling dump failed: %v", msg.Err),
-				}
-			}
-		}
-
-		return m, func() tea.Msg {
-			return msgs.DisplayStatus{
-				Msg: fmt.Sprintf("profiling dump written: goroutine=%s heap=%s",
-					msg.GoroutinePath, msg.HeapPath),
-			}
-		}
+		return m.handleProfilesDumped(msg)
 
 	case msgs.FileAvailabilityChanged:
 		return m.handleFileAvailabilityChanged(msg)
 
 	case msgs.FileRemoved:
-		m.watching = watching.New(msg.File, m.width, m.height, m.theme, m.parser)
-		m.phase = PhaseWatching
-		m.statusActive = false
-
-		m, frameCmd = m.frameHeightCmd()
-
-		return m, tea.Batch(
-			func() tea.Msg { return msgs.TopbarContext{Phase: "watching", File: "", Service: ""} },
-			func() tea.Msg { return msgs.BindingsMsg{Keymap: watchingKeymap{}} },
-			frameCmd,
-		)
+		return m.handleFileRemoved(msg)
 
 	case msgs.DisplayError,
 		msgs.DisplayStatus,
 		msgs.ClearStatusMsg:
+		var statusbarCmd, frameCmd tea.Cmd
+
 		m.statusbar, statusbarCmd = m.statusbar.Update(msg)
 		m.statusActive = m.statusbar.View().Content != ""
 
@@ -274,6 +249,45 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case msgs.BindingsMsg:
 		m.keymap = msg.Keymap
 	}
+
+	return m.dispatchToComponents(msg)
+}
+
+func (m Model) handleProfilesDumped(msg profiling.ProfilesDumped) (tea.Model, tea.Cmd) {
+	if msg.Err != nil {
+		return m, func() tea.Msg {
+			return msgs.DisplayError{
+				Err: fmt.Sprintf("profiling dump failed: %v", msg.Err),
+			}
+		}
+	}
+
+	return m, func() tea.Msg {
+		return msgs.DisplayStatus{
+			Msg: fmt.Sprintf("profiling dump written: goroutine=%s heap=%s",
+				msg.GoroutinePath, msg.HeapPath),
+		}
+	}
+}
+
+func (m Model) handleFileRemoved(msg msgs.FileRemoved) (tea.Model, tea.Cmd) {
+	var frameCmd tea.Cmd
+
+	m.watching = watching.New(msg.File, m.width, m.height, m.theme, m.parser)
+	m.phase = PhaseWatching
+	m.statusActive = false
+
+	m, frameCmd = m.frameHeightCmd()
+
+	return m, tea.Batch(
+		func() tea.Msg { return msgs.TopbarContext{Phase: "watching", File: "", Service: ""} },
+		func() tea.Msg { return msgs.BindingsMsg{Keymap: watchingKeymap{}} },
+		frameCmd,
+	)
+}
+
+func (m Model) dispatchToComponents(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var topbarCmd, helpbarCmd, statusbarCmd, aboutCmd, frameCmd tea.Cmd
 
 	m.topbar, topbarCmd = m.topbar.Update(msg)
 	m.helpbar, helpbarCmd = m.helpbar.Update(msg)

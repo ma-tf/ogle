@@ -84,49 +84,21 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 
 	case msgs.ServicesPolled:
-		if msg.Err != nil {
-			break
-		}
+		var cmd tea.Cmd
 
-		rt, hasRuntime := msg.Runtimes[m.def.Name]
-		isRunning := hasRuntime && rt.State == domain.ServiceStateRunning
-
-		if isRunning && !m.streamerStarted {
-			var cmd tea.Cmd
-
-			m, cmd = m.startStreamer()
-			cmds = append(cmds, cmd)
-		} else if !isRunning && m.streamerStarted {
-			m.streamer.Close()
-			m.streamerStarted = false
-			m.retryCount = 0
-		}
-
-	case msgs.LogLinesAvailable:
-		m.retryCount = 0
-		cmds = append(cmds, m.streamer.Next())
-
-	case msgs.LogStreamContainerNotFound:
-		m.streamer.Close()
-		m.streamerStarted = false
-		m.retryCount = 0
-
-	case msgs.LogStreamError:
-		m.streamer.Close()
-		m.streamerStarted = false
-
-		cmds = append(cmds, tea.Tick(m.retryDelay(), func(_ time.Time) tea.Msg {
-			return msgs.LogStreamRetryTick{}
-		}))
-		m.retryCount++
-
-	case msgs.LogStreamRetryTick:
-		if !m.streamerStarted {
-			var cmd tea.Cmd
-
-			m, cmd = m.startStreamer()
+		m, cmd = m.handleServicesPolled(msg)
+		if cmd != nil {
 			cmds = append(cmds, cmd)
 		}
+
+	case msgs.LogLinesAvailable,
+		msgs.LogStreamContainerNotFound,
+		msgs.LogStreamError,
+		msgs.LogStreamRetryTick:
+		var streamCmds []tea.Cmd
+
+		m, streamCmds = m.handleStreamEvent(msg)
+		cmds = append(cmds, streamCmds...)
 
 	case theme.Changed:
 		m.theme = msg.Theme
@@ -141,6 +113,68 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	}
 
 	return m, tea.Batch(cmds...)
+}
+
+func (m Model) handleServicesPolled(msg msgs.ServicesPolled) (Model, tea.Cmd) {
+	if msg.Err != nil {
+		return m, nil
+	}
+
+	rt, hasRuntime := msg.Runtimes[m.def.Name]
+	isRunning := hasRuntime && rt.State == domain.ServiceStateRunning
+
+	if isRunning && !m.streamerStarted {
+		return m.startStreamer()
+	}
+
+	if !isRunning && m.streamerStarted {
+		m.streamer.Close()
+		m.streamerStarted = false
+		m.retryCount = 0
+	}
+
+	return m, nil
+}
+
+func (m Model) handleStreamEvent(msg tea.Msg) (Model, []tea.Cmd) {
+	switch msg.(type) {
+	case msgs.LogLinesAvailable:
+		m.retryCount = 0
+
+		return m, []tea.Cmd{m.streamer.Next()}
+
+	case msgs.LogStreamContainerNotFound:
+		m.streamer.Close()
+		m.streamerStarted = false
+		m.retryCount = 0
+
+		return m, nil
+
+	case msgs.LogStreamError:
+		m.streamer.Close()
+		m.streamerStarted = false
+
+		m.retryCount++
+
+		return m, []tea.Cmd{
+			tea.Tick(m.retryDelay(), func(_ time.Time) tea.Msg {
+				return msgs.LogStreamRetryTick{}
+			}),
+		}
+
+	case msgs.LogStreamRetryTick:
+		if !m.streamerStarted {
+			var cmd tea.Cmd
+
+			m, cmd = m.startStreamer()
+
+			return m, []tea.Cmd{cmd}
+		}
+
+		return m, nil
+	}
+
+	return m, nil
 }
 
 // wrapLogWrapStatus intercepts a LogWrapStatus command and injects the given

@@ -85,33 +85,10 @@ func (m Model) Init() tea.Cmd {
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.w = msg.Width
-		m.h = msg.Height
-		m.scrollOffset = 0
-		m.scrollDir = 1
-
-		if m.focused && m.needsScroll() {
-			m.focusGen++
-			m.nextScrollTime = time.Now().Add(scrollIdleInterval * time.Millisecond)
-
-			return m, tickScroll(m.nextScrollTime, m.focusGen)
-		}
+		return m.handleWindowSizeMsg(msg)
 
 	case FocusMsg:
-		if m.def.Name != msg.ServiceName {
-			break
-		}
-
-		m.focused = true
-		m.scrollOffset = 0
-		m.scrollDir = 1
-
-		if m.needsScroll() {
-			m.focusGen++
-			m.nextScrollTime = time.Now().Add(scrollIdleInterval * time.Millisecond)
-
-			return m, tickScroll(m.nextScrollTime, m.focusGen)
-		}
+		return m.handleFocusMsg(msg)
 
 	case BlurMsg:
 		if m.def.Name != msg.ServiceName {
@@ -140,9 +117,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		return m.handleScrollTick(msg)
 
 	case msgs.ServicesPolled:
-		if msg.Err == nil && m.def.Name != "" {
-			m.runtime = msg.Runtimes[m.def.Name]
-		}
+		m = m.handleServicesPolledMsg(msg)
 
 	case msgs.ServiceStop, msgs.ServiceStart, msgs.ServiceRestart, msgs.ServiceRebuild:
 		m = m.setInFlightIfMatch(serviceNameFromMsg(msg))
@@ -155,6 +130,49 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	}
 
 	return m, nil
+}
+
+func (m Model) handleWindowSizeMsg(msg tea.WindowSizeMsg) (Model, tea.Cmd) {
+	m.w = msg.Width
+	m.h = msg.Height
+	m.scrollOffset = 0
+	m.scrollDir = 1
+
+	if m.focused && m.needsScroll() {
+		m.focusGen++
+		m.nextScrollTime = time.Now().Add(scrollIdleInterval * time.Millisecond)
+
+		return m, tickScroll(m.nextScrollTime, m.focusGen)
+	}
+
+	return m, nil
+}
+
+func (m Model) handleFocusMsg(msg FocusMsg) (Model, tea.Cmd) {
+	if m.def.Name != msg.ServiceName {
+		return m, nil
+	}
+
+	m.focused = true
+	m.scrollOffset = 0
+	m.scrollDir = 1
+
+	if m.needsScroll() {
+		m.focusGen++
+		m.nextScrollTime = time.Now().Add(scrollIdleInterval * time.Millisecond)
+
+		return m, tickScroll(m.nextScrollTime, m.focusGen)
+	}
+
+	return m, nil
+}
+
+func (m Model) handleServicesPolledMsg(msg msgs.ServicesPolled) Model {
+	if msg.Err == nil && m.def.Name != "" {
+		m.runtime = msg.Runtimes[m.def.Name]
+	}
+
+	return m
 }
 
 func (m Model) handleScrollTick(msg ScrollTick) (Model, tea.Cmd) {

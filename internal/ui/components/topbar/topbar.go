@@ -94,29 +94,12 @@ func (m Model) Init() tea.Cmd {
 // Update handles daemon connectivity messages, spinner ticks, window
 // resize events, and topbar context changes.
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
-	var cmds []tea.Cmd
-
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 
 	case msgs.TopbarContext:
-		switch msg.Phase {
-		case "startup":
-			m.phase = PhaseStartup
-		case "dashboard":
-			m.phase = PhaseDashboard
-		case "watching":
-			m.phase = PhaseWatching
-		}
-
-		m.projectFile = msg.File
-		if msg.Service != m.selectedService {
-			m.wrapOn = false
-			m.truncated = false
-		}
-
-		m.selectedService = msg.Service
+		m = m.handleTopbarContext(msg)
 
 	case msgs.LogWrapStatus:
 		if msg.ServiceName == m.selectedService {
@@ -127,6 +110,53 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case theme.Changed:
 		m.th = msg.Theme
 
+	case msgs.DaemonConnected,
+		msgs.DaemonUnavailable,
+		msgs.DaemonGraceExpired,
+		msgs.DaemonTick,
+		msgs.DaemonPoll:
+		var cmds []tea.Cmd
+
+		m, cmds = m.handleDaemonMsg(msg)
+
+		return m, tea.Batch(cmds...)
+
+	case spinner.TickMsg:
+		var cmd tea.Cmd
+
+		m.spn, cmd = m.spn.Update(msg)
+
+		return m, cmd
+	}
+
+	return m, nil
+}
+
+func (m Model) handleTopbarContext(msg msgs.TopbarContext) Model {
+	switch msg.Phase {
+	case "startup":
+		m.phase = PhaseStartup
+	case "dashboard":
+		m.phase = PhaseDashboard
+	case "watching":
+		m.phase = PhaseWatching
+	}
+
+	m.projectFile = msg.File
+	if msg.Service != m.selectedService {
+		m.wrapOn = false
+		m.truncated = false
+	}
+
+	m.selectedService = msg.Service
+
+	return m
+}
+
+func (m Model) handleDaemonMsg(msg tea.Msg) (Model, []tea.Cmd) {
+	var cmds []tea.Cmd
+
+	switch msg.(type) {
 	case msgs.DaemonConnected:
 		m.conn.HandleConnected()
 
@@ -151,20 +181,13 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			}
 		}
 
-	case spinner.TickMsg:
-		var cmd tea.Cmd
-
-		m.spn, cmd = m.spn.Update(msg)
-
-		cmds = append(cmds, cmd)
-
 	case msgs.DaemonPoll:
 		if m.conn.ConnectState() == connection.ConnectStateConnected {
 			cmds = append(cmds, m.docker.Connect(m.ctx))
 		}
 	}
 
-	return m, tea.Batch(cmds...)
+	return m, cmds
 }
 
 func (m Model) contextText() string {

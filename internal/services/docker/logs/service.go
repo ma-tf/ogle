@@ -92,94 +92,94 @@ func New(serviceName string, opts ...Option) *LogStreamer {
 // 404 or non-200 the goroutine writes a single error message to ch and exits.
 // On 200 it writes log line strings to lineCh until the stream ends or Close
 // is called.
-//
-//nolint:gocognit // HTTP lifecycle + status dispatch + stream orchestration.
 func (s *LogStreamer) Start(appCtx context.Context, containerName string) {
 	ctx, cancel := context.WithCancel(appCtx)
 	s.cancel = cancel
 	s.done = make(chan struct{})
 
 	s.wg.Go(func() {
-		client := s.client
-		if client == nil {
-			transport := &http.Transport{
-				DialContext: func(dialCtx context.Context, _, _ string) (net.Conn, error) {
-					d := net.Dialer{}
-
-					return d.DialContext(dialCtx, "unix", socketPath)
-				},
-			}
-			client = &http.Client{Transport: transport}
-		}
-
-		req, err := http.NewRequestWithContext(
-			ctx,
-			http.MethodGet,
-			fmt.Sprintf(
-				"http://localhost/containers/%s/logs?follow=true&stdout=1&stderr=1&tail=%s",
-				url.PathEscape(containerName), tailLines,
-			),
-			nil,
-		)
-		if err != nil {
-			select {
-			case s.ch <- msgs.LogStreamError{Err: err, ServiceName: s.serviceName}:
-			case <-ctx.Done():
-			}
-
-			return
-		}
-
-		resp, err := client.Do(req)
-		if err != nil {
-			select {
-			case s.ch <- msgs.LogStreamError{Err: err, ServiceName: s.serviceName}:
-			case <-ctx.Done():
-			}
-
-			return
-		}
-
-		if resp.StatusCode == http.StatusNotFound {
-			_ = resp.Body.Close()
-
-			client.CloseIdleConnections()
-
-			select {
-			case s.ch <- msgs.LogStreamContainerNotFound{ServiceName: s.serviceName}:
-			case <-ctx.Done():
-			}
-
-			return
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			body, _ := io.ReadAll(io.LimitReader(resp.Body, errorBodyLimit))
-			_ = resp.Body.Close()
-
-			client.CloseIdleConnections()
-
-			select {
-			case s.ch <- msgs.LogStreamError{
-				Err:         fmt.Errorf("%w %d: %s", ErrUnexpectedStatus, resp.StatusCode, body),
-				ServiceName: s.serviceName,
-			}:
-			case <-ctx.Done():
-			}
-
-			return
-		}
-
-		defer client.CloseIdleConnections()
-
-		err = ReadFrames(ctx, resp.Body, s.lineCh, s.ch)
-		if err != nil && ctx.Err() == nil {
-			select {
-			case s.ch <- msgs.LogStreamError{Err: err, ServiceName: s.serviceName}:
-			case <-ctx.Done():
-			}
-		}
+		s.startStream(ctx, containerName)
 	})
+}
+
+// startStream runs in a background goroutine. It connects to the Docker socket,
+// requests the log stream, and dispatches log lines or error messages.
+func (s *LogStreamer) startStream(ctx context.Context, containerName string) {
+	client := s.client
+	if client == nil {
+		transport := &http.Transport{
+			DialContext: func(dialCtx context.Context, _, _ string) (net.Conn, error) {
+				d := net.Dialer{}
+
+				return d.DialContext(dialCtx, "unix", socketPath)
+			},
+		}
+		client = &http.Client{Transport: transport}
+	}
+
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodGet,
+		fmt.Sprintf(
+			"http://localhost/containers/%s/logs?follow=true&stdout=1&stderr=1&tail=%s",
+			url.PathEscape(containerName), tailLines,
+		),
+		nil,
+	)
+	if err != nil {
+		s.sendError(ctx, err)
+
+		return
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		s.sendError(ctx, err)
+
+		return
+	}
+
+	if resp.StatusCode == http.StatusNotFound {
+		_ = resp.Body.Close()
+
+		client.CloseIdleConnections()
+
+		s.sendContainerNotFound(ctx)
+
+		return
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, errorBodyLimit))
+		_ = resp.Body.Close()
+
+		client.CloseIdleConnections()
+
+		s.sendError(ctx, fmt.Errorf("%w %d: %s", ErrUnexpectedStatus, resp.StatusCode, body))
+
+		return
+	}
+
+	defer client.CloseIdleConnections()
+
+	err = ReadFrames(ctx, resp.Body, s.lineCh, s.ch)
+	if err != nil && ctx.Err() == nil {
+		s.sendError(ctx, err)
+	}
+}
+
+func (s *LogStreamer) sendError(ctx context.Context, err error) {
+	select {
+	case s.ch <- msgs.LogStreamError{Err: err, ServiceName: s.serviceName}:
+	case <-ctx.Done():
+	}
+}
+
+func (s *LogStreamer) sendContainerNotFound(ctx context.Context) {
+	select {
+	case s.ch <- msgs.LogStreamContainerNotFound{ServiceName: s.serviceName}:
+	case <-ctx.Done():
+	}
 }
 
 // ReadFrames reads the Docker multiplexed log stream from r until the context
