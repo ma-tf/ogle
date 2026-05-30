@@ -21,7 +21,7 @@ import (
 
 const (
 	socketPath     = "/var/run/docker.sock"
-	channelCap     = 1
+	channelCap     = 2
 	lineBufferCap  = 5000
 	tailLines      = "1000"
 	errorBodyLimit = 512
@@ -163,7 +163,7 @@ func (s *LogStreamer) startStream(ctx context.Context, containerName string) {
 	defer client.CloseIdleConnections()
 
 	err = ReadFrames(ctx, resp.Body, s.lineCh, s.ch, s.serviceName)
-	if err != nil && ctx.Err() == nil {
+	if err != nil && ctx.Err() == nil && !errors.Is(err, io.EOF) {
 		s.sendError(ctx, err)
 	}
 }
@@ -201,24 +201,24 @@ func ReadFrames(
 	for {
 		var header [8]byte
 
-		if _, readErr := io.ReadFull(r, header[:]); readErr != nil {
+		if _, err := io.ReadFull(r, header[:]); err != nil {
 			select {
 			case <-ctx.Done():
 				return ctx.Err() //nolint:wrapcheck // sentinel errors, callers check via errors.Is
 			default:
-				return readErr //nolint:wrapcheck // std lib errors, callers check via errors.Is
+				return err //nolint:wrapcheck // std lib errors, callers check via errors.Is
 			}
 		}
 
 		size := binary.BigEndian.Uint32(header[4:])
 		payload := make([]byte, size)
 
-		if _, readErr := io.ReadFull(r, payload); readErr != nil {
+		if _, err := io.ReadFull(r, payload); err != nil {
 			select {
 			case <-ctx.Done():
 				return ctx.Err() //nolint:wrapcheck // sentinel errors, callers check via errors.Is
 			default:
-				return readErr //nolint:wrapcheck // std lib errors, callers check via errors.Is
+				return err //nolint:wrapcheck // std lib errors, callers check via errors.Is
 			}
 		}
 
