@@ -88,7 +88,7 @@ func Default() *Theme {
 		CardHoverBackground:            defaultDarkGrey,
 		LogPaneBackground:              defaultBlack,
 		BodyBackground:                 defaultBlack,
-		AboutBackground:                defaultDarkGrey,
+		AboutBackground:                defaultBlack,
 		AboutTitleColour:               defaultMagenta,
 		AboutArtColour:                 defaultBrightBlack,
 		AboutTextColour:                defaultWhite,

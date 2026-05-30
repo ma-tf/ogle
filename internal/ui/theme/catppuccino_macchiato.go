@@ -84,7 +84,7 @@ func CatppuccinoMacchiato() *Theme {
 		CardHoverBackground:            macchiatoSurface0,
 		LogPaneBackground:              macchiatoCrust,
 		BodyBackground:                 macchiatoBase,
-		AboutBackground:                macchiatoBase,
+		AboutBackground:                macchiatoMantle,
 		AboutTitleColour:               macchiatoMauve,
 		AboutArtColour:                 macchiatoOverlay0,
 		AboutTextColour:                macchiatoText,

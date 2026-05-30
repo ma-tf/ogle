@@ -82,7 +82,7 @@ func CatppuccinoFrappe() *Theme {
 		CardHoverBackground:            frappeSurface0,
 		LogPaneBackground:              frappeCrust,
 		BodyBackground:                 frappeBase,
-		AboutBackground:                frappeBase,
+		AboutBackground:                frappeMantle,
 		AboutTitleColour:               frappeMauve,
 		AboutArtColour:                 frappeOverlay0,
 		AboutTextColour:                frappeText,

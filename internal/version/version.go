@@ -1,4 +1,5 @@
-// Package version holds build metadata set at compile time via ldflags.
+// Package version holds build metadata set at compile time via ldflags and
+// the shared ASCII art branding.
 package version
 
 //nolint:gochecknoglobals // build metadata variables set via ldflags
@@ -10,3 +11,19 @@ var (
 	// Date is the build date.
 	Date = "unknown"
 )
+
+// ASCIIArt is the ogle brand ASCII art rendered in the About overlay and the
+// CLI version command.
+const ASCIIArt = `                         _               __         
+       , ·. ,.-·~·.,   ‘              ,.-·^*ª'' ·,                 ,.  '                      _,.,  °    
+      /  ·'´,.-·-.,   ','‚           .·´ ,·'´:¯''·,  '\‘            /   ';\               ,.·'´  ,. ,  ';\ '  
+     /  .'´\:::::::'\   '\ °       ,´  ,'\:::::::::\,.·\'         ,'   ,'::'\            .´   ;´:::::\''´ \'\  
+  ,·'  ,'::::\:;:-·-:';  ';\‚      /   /:::\;·'´¯''·;\:::\°      ,'    ;:::';'          /   ,'::\::::::\:::\:' 
+ ;.   ';:::;´       ,'  ,':'\‚    ;   ;:::;'          '\;:·´      ';   ,':::;'          ;   ;:;:-·'~^ª*';\'´   
+  ';   ;::;       ,'´ .'´\::';‚  ';   ;::/      ,·´¯';  °        ;  ,':::;' '          ;  ,.-·:*'´¨''*´\::\ '  
+  ';   ':;:   ,.·´,.·´::::\;'°  ';   '·;'   ,.·´,    ;'\         ,'  ,'::;'            ;   ;\::::::::::::'\;'   
+   \·,   '*´,.·'´::::::;·´     \'·.    ''´,.·:´';   ;::\'       ;  ';_:,.-·´';\‘     ;  ;'_\_:;:: -·^*';\   
+    \\:¯::\:::::::;:·´         '\::\¯::::::::';   ;::'; ‘     ',   _,.-·'´:\:\‘    ';    ,  ,. -·:*'´:\:'\° 
+     '\:::::\;::·'´  °            '·:\:::;:·´';.·´\::;'         \¨:::::::::::\';     \'*´ ¯\:::::::::::\;' '
+         ¯                           ¯      \::::\;'‚          '\;::_;:-·'´‘         \:::::\;::-·^*'´     
+          ‘                                    '\:·´'              '¨                    '*´¯              `

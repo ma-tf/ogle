@@ -82,7 +82,7 @@ func CatppuccinoMocha() *Theme {
 		CardHoverBackground:            mochaSurface0,
 		LogPaneBackground:              mochaCrust,
 		BodyBackground:                 mochaBase,
-		AboutBackground:                mochaBase,
+		AboutBackground:                mochaMantle,
 		AboutTitleColour:               mochaMauve,
 		AboutArtColour:                 mochaOverlay0,
 		AboutTextColour:                mochaText,

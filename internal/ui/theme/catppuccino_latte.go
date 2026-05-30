@@ -82,7 +82,7 @@ func CatppuccinoLatte() *Theme {
 		CardHoverBackground:            latteSurface0,
 		LogPaneBackground:              latteCrust,
 		BodyBackground:                 latteBase,
-		AboutBackground:                latteBase,
+		AboutBackground:                latteMantle,
 		AboutTitleColour:               latteMauve,
 		AboutArtColour:                 latteOverlay0,
 		AboutTextColour:                latteText,

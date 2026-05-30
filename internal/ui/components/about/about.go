@@ -11,19 +11,10 @@ import (
 	"github.com/ma-tf/ogle/internal/version"
 )
 
-const ascii = `                         _               __         
-       , ·. ,.-·~·.,   ‘              ,.-·^*ª'' ·,                 ,.  '                      _,.,  °    
-      /  ·'´,.-·-.,   ','‚           .·´ ,·'´:¯''·,  '\‘            /   ';\               ,.·'´  ,. ,  ';\ '  
-     /  .'´\:::::::'\   '\ °       ,´  ,'\:::::::::\,.·\'         ,'   ,'::'\            .´   ;´:::::\''´ \'\  
-  ,·'  ,'::::\:;:-·-:';  ';\‚      /   /:::\;·'´¯''·;\:::\°      ,'    ;:::';'          /   ,'::\::::::\:::\:' 
- ;.   ';:::;´       ,'  ,':'\‚    ;   ;:::;'          '\;:·´      ';   ,':::;'          ;   ;:;:-·'~^ª*';\'´   
-  ';   ;::;       ,'´ .'´\::';‚  ';   ;::/      ,·´¯';  °        ;  ,':::;' '          ;  ,.-·:*'´¨''*´\::\ '  
-  ';   ':;:   ,.·´,.·´::::\;'°  ';   '·;'   ,.·´,    ;'\         ,'  ,'::;'            ;   ;\::::::::::::'\;'   
-   \·,   '*´,.·'´::::::;·´     \'·.    ''´,.·:´';   ;::\'       ;  ';_:,.-·´';\‘     ;  ;'_\_:;:: -·^*';\   
-    \\:¯::\:::::::;:·´         '\::\¯::::::::';   ;::'; ‘     ',   _,.-·'´:\:\‘    ';    ,  ,. -·:*'´:\:'\° 
-     '\:::::\;::·'´  °            '·:\:::;:·´';.·´\::;'         \¨:::::::::::\';     \'*´ ¯\:::::::::::\;' '
-         ¯                           ¯      \::::\;'‚          '\;::_;:-·'´‘         \:::::\;::-·^*'´     
-          ‘                                    '\:·´'              '¨                    '*´¯              `
+const (
+	boxExtraWidth = 10
+	boxPadding    = 2
+)
 
 // Model is a read-only about overlay.
 type Model struct {
@@ -55,48 +46,54 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 // View renders the about overlay.
 func (m Model) View() tea.View {
-	title := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(m.th.AboutTitleColour).
-		Render("ogle")
-
-	artStyle := lipgloss.NewStyle().
-		Foreground(m.th.AboutArtColour).
-		Render(ascii)
-
-	versionLine := lipgloss.NewStyle().
-		Foreground(m.th.AboutTextColour).
-		Render(version.Version + " (commit: " + version.Commit + ", built: " + version.Date + ")")
-
 	url := ansi.SetHyperlink("https://github.com/ma-tf/ogle") +
 		"github.com/ma-tf/ogle" +
 		ansi.ResetHyperlink()
 
-	urlStyle := lipgloss.NewStyle().
-		Foreground(m.th.AboutLinkColour).
-		Render(url)
+	// Determine content width before adding background.
+	raw := []string{
+		"ogle",
+		"",
+		version.ASCIIArt,
+		"",
+		version.Version + " (commit: " + version.Commit + ", built: " + version.Date + ")",
+		"",
+		url,
+		"",
+		"F1 / esc / q to close",
+	}
 
-	closeHint := lipgloss.NewStyle().
-		Foreground(m.th.AboutHintColour).
-		Render("F1 / esc / q to close")
+	contentWidth := 0
 
-	content := lipgloss.JoinVertical(lipgloss.Center,
-		title,
-		"",
-		artStyle,
-		"",
-		versionLine,
-		"",
-		urlStyle,
-		"",
-		closeHint,
-	)
+	for _, item := range raw {
+		if w := lipgloss.Width(item); w > contentWidth {
+			contentWidth = w
+		}
+	}
 
-	boxW := lipgloss.Width(content)
+	boxW := contentWidth + boxExtraWidth
+
+	bg := lipgloss.NewStyle().
+		Width(boxW).
+		Align(lipgloss.Center).
+		Background(m.th.AboutBackground)
+
+	styled := []string{
+		bg.Foreground(m.th.AboutTitleColour).Bold(true).Render(raw[0]),
+		bg.Render(raw[1]),
+		bg.Foreground(m.th.AboutArtColour).Render(raw[2]),
+		bg.Render(raw[3]),
+		bg.Foreground(m.th.AboutTextColour).Render(raw[4]),
+		bg.Render(raw[5]),
+		bg.Foreground(m.th.AboutLinkColour).Render(raw[6]),
+		bg.Render(raw[7]),
+		bg.Foreground(m.th.AboutHintColour).Render(raw[8]),
+	}
+
+	content := lipgloss.JoinVertical(lipgloss.Top, styled...)
 
 	return tea.NewView(lipgloss.NewStyle().
-		Width(boxW).
-		Padding(0, 2). //nolint:mnd // horizontal padding for overlay box
+		Padding(0, boxPadding).
 		Background(m.th.AboutBackground).
 		Render(content))
 }

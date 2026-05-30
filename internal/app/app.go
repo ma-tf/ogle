@@ -396,9 +396,7 @@ func (m Model) dispatchToComponents(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.helpbar, helpbarCmd = m.helpbar.Update(msg)
 	m.statusbar, statusbarCmd = m.statusbar.Update(msg)
 
-	if m.showingAbout {
-		m.about, aboutCmd = m.about.Update(msg)
-	}
+	m.about, aboutCmd = m.about.Update(msg)
 
 	var cmd tea.Cmd
 
