@@ -20,7 +20,7 @@ func builtinThemeNames() []string {
 	}
 }
 
-func TestCardHoverBackgroundIsPurple(t *testing.T) {
+func TestCardHoverBackgroundDiffersFromHoverBackground(t *testing.T) {
 	t.Parallel()
 
 	type testCase struct {
