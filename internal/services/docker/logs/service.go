@@ -228,6 +228,7 @@ func ReadFrames(
 			case signals <- msgs.LogLinesAvailable{ServiceName: serviceName}:
 			case <-ctx.Done():
 				return ctx.Err() //nolint:wrapcheck // sentinel errors, callers check via errors.Is
+			default:
 			}
 		case <-ctx.Done():
 			return ctx.Err() //nolint:wrapcheck // sentinel errors, callers check via errors.Is

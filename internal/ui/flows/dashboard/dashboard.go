@@ -51,6 +51,8 @@ type Model struct {
 	runtimeData     map[string]*domain.ServiceRuntimeData
 	w, h            int
 	frameHeight     int
+
+	lastInspectedContainerID string
 }
 
 // New returns a Model.
@@ -71,25 +73,26 @@ func New(
 	}
 
 	return Model{
-		ctx:             ctx,
-		parser:          p,
-		project:         project,
-		th:              th,
-		zm:              zm,
-		configDir:       configDir,
-		docker:          docker,
-		accordion:       accordion.New(project, w, accordionInitHeight, th, zm),
-		labelsAccordion: labelsaccordion.New(th, w, zm),
-		carousel:        carousel.New(project, w, h, th, zm),
-		panel:           servicepanel.New(project, th, w, h, cfg.LogBufferCap),
-		settings:        settings.New(th, cfg, w, h),
-		showingSettings: false,
-		cfg:             cfg,
-		selectedName:    selectedName,
-		runtimeData:     nil,
-		w:               w,
-		h:               h,
-		frameHeight:     layout.FrameHeight,
+		ctx:                      ctx,
+		parser:                   p,
+		project:                  project,
+		th:                       th,
+		zm:                       zm,
+		configDir:                configDir,
+		docker:                   docker,
+		accordion:                accordion.New(project, w, accordionInitHeight, th, zm),
+		labelsAccordion:          labelsaccordion.New(th, w, zm),
+		carousel:                 carousel.New(project, w, h, th, zm),
+		panel:                    servicepanel.New(project, th, w, h, cfg.LogBufferCap),
+		settings:                 settings.New(th, cfg, w, h),
+		showingSettings:          false,
+		cfg:                      cfg,
+		selectedName:             selectedName,
+		runtimeData:              nil,
+		w:                        w,
+		h:                        h,
+		frameHeight:              layout.FrameHeight,
+		lastInspectedContainerID: "",
 	}
 }
 
@@ -315,6 +318,7 @@ func (m Model) handleFileAvailabilityChanged(files []string) (Model, tea.Cmd) {
 // TopbarContext, ReportWrapStatus, and container label inspection commands.
 func (m Model) handleServiceSelected(msg msgs.ServiceSelected) (Model, tea.Cmd) {
 	m.selectedName = msg.ServiceName
+	m.lastInspectedContainerID = ""
 
 	return m, tea.Batch(
 		func() tea.Msg {
@@ -344,12 +348,17 @@ func (m Model) handleSettingsApplied(msg msgs.SettingsApplied) (Model, tea.Cmd) 
 }
 
 // handleServicesPolled updates runtime data and triggers label inspection
-// when the data is available.
+// when the selected service's container ID has changed.
 func (m Model) handleServicesPolled(msg msgs.ServicesPolled) (Model, tea.Cmd) {
 	if msg.Err == nil {
 		m.runtimeData = msg.Runtimes
 
-		return m, m.inspectSelected()
+		rt, hasRuntime := msg.Runtimes[m.selectedName]
+		if hasRuntime && rt.ContainerID != m.lastInspectedContainerID {
+			m.lastInspectedContainerID = rt.ContainerID
+
+			return m, m.inspectSelected()
+		}
 	}
 
 	return m, nil

@@ -62,6 +62,9 @@ const (
 	// motionThrottleInterval is the minimum interval between processed mouse-motion
 	// events. Events arriving faster are dropped to reduce render pressure.
 	motionThrottleInterval = 33 * time.Millisecond
+
+	// profileDuration is the CPU profile collection window when ctrl+p is pressed.
+	profileDuration = 30 * time.Second
 )
 
 type viewCache struct {
@@ -351,11 +354,22 @@ func (m Model) handleProfilesDumped(msg profiling.ProfilesDumped) (tea.Model, te
 		}
 	}
 
+	parts := "profiling dump written:"
+
+	if msg.CPUProfilePath != "" {
+		parts += " cpu=" + msg.CPUProfilePath
+	}
+
+	if msg.GoroutinePath != "" {
+		parts += " goroutine=" + msg.GoroutinePath
+	}
+
+	if msg.HeapPath != "" {
+		parts += " heap=" + msg.HeapPath
+	}
+
 	return m, func() tea.Msg {
-		return msgs.DisplayStatus{
-			Msg: fmt.Sprintf("profiling dump written: goroutine=%s heap=%s",
-				msg.GoroutinePath, msg.HeapPath),
-		}
+		return msgs.DisplayStatus{Msg: parts}
 	}
 }
 
@@ -448,7 +462,12 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 	case key.Matches(msg, keyQuit):
 		return m, tea.Quit
 	case key.Matches(msg, keyProfile):
-		return m, profiling.DumpCmd()
+		return m, tea.Batch(
+			func() tea.Msg {
+				return msgs.DisplayStatus{Msg: "Profiling: mouse around for 30s…"}
+			},
+			profiling.DumpAllCmd(profileDuration),
+		)
 	case key.Matches(msg, keyHelpToggle):
 		var helpbarCmd, frameCmd tea.Cmd
 

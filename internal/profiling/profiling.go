@@ -1,5 +1,5 @@
 // Package profiling provides one-shot pprof dump commands for runtime
-// diagnosis of goroutine and heap leaks.
+// diagnosis of goroutine, heap, and CPU performance.
 package profiling
 
 import (
@@ -12,70 +12,95 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-// ProfilesDumped is delivered by DumpCmd with the paths of written profile files.
+// ProfilesDumped is delivered by DumpAllCmd with the paths of written profile files.
 type ProfilesDumped struct {
-	GoroutinePath string
-	HeapPath      string
-	Err           error
+	CPUProfilePath string
+	GoroutinePath  string
+	HeapPath       string
+	Err            error
 }
 
-// DumpCmd returns a Cmd that writes goroutine and heap profiles to
-// timestamped .pb.gz files in the current directory.
-func DumpCmd() tea.Cmd {
+// DumpAllCmd returns a Cmd that collects a CPU profile for the given duration
+// (if > 0), then writes goroutine and heap profiles to timestamped .pb.gz files
+// in the current directory.
+func DumpAllCmd(d time.Duration) tea.Cmd {
 	return func() tea.Msg {
 		ts := time.Now().UTC().Format("20060102T150405Z")
 		prefix := "ogle-profile-" + ts
 
-		goPath := filepath.Join(".", prefix+"-goroutine.pb.gz")
+		var cpuPath string
 
-		f, err := os.Create(goPath)
-		if err != nil {
-			return ProfilesDumped{
-				GoroutinePath: "",
-				HeapPath:      "",
-				Err:           fmt.Errorf("create goroutine profile: %w", err),
+		if d > 0 {
+			cpuPath = filepath.Join(".", prefix+"-cpu.pb.gz")
+
+			f, createErr := os.Create(cpuPath)
+			if createErr != nil {
+				return ProfilesDumped{
+					CPUProfilePath: "",
+					GoroutinePath:  "",
+					HeapPath:       "",
+					Err:            fmt.Errorf("create CPU profile: %w", createErr),
+				}
 			}
-		}
 
-		if err = pprof.Lookup("goroutine").WriteTo(f, 0); err != nil {
+			if startErr := pprof.StartCPUProfile(f); startErr != nil {
+				_ = f.Close()
+				_ = os.Remove(cpuPath)
+
+				return ProfilesDumped{
+					CPUProfilePath: "",
+					GoroutinePath:  "",
+					HeapPath:       "",
+					Err:            fmt.Errorf("start CPU profile: %w", startErr),
+				}
+			}
+
+			time.Sleep(d)
+
+			pprof.StopCPUProfile()
+
 			_ = f.Close()
-
-			return ProfilesDumped{
-				GoroutinePath: "",
-				HeapPath:      "",
-				Err:           fmt.Errorf("write goroutine profile: %w", err),
-			}
 		}
 
-		_ = f.Close()
+		goPath := filepath.Join(".", prefix+"-goroutine.pb.gz")
+		if err := writeProfile("goroutine", goPath); err != nil {
+			return ProfilesDumped{
+				CPUProfilePath: cpuPath,
+				GoroutinePath:  "",
+				HeapPath:       "",
+				Err:            fmt.Errorf("write goroutine profile: %w", err),
+			}
+		}
 
 		heapPath := filepath.Join(".", prefix+"-heap.pb.gz")
-
-		f2, err := os.Create(heapPath)
-		if err != nil {
+		if err := writeProfile("heap", heapPath); err != nil {
 			return ProfilesDumped{
-				GoroutinePath: "",
-				HeapPath:      "",
-				Err:           fmt.Errorf("create heap profile: %w", err),
+				CPUProfilePath: cpuPath,
+				GoroutinePath:  goPath,
+				HeapPath:       "",
+				Err:            fmt.Errorf("write heap profile: %w", err),
 			}
 		}
-
-		if err = pprof.Lookup("heap").WriteTo(f2, 0); err != nil {
-			_ = f2.Close()
-
-			return ProfilesDumped{
-				GoroutinePath: "",
-				HeapPath:      "",
-				Err:           fmt.Errorf("write heap profile: %w", err),
-			}
-		}
-
-		_ = f2.Close()
 
 		return ProfilesDumped{
-			GoroutinePath: goPath,
-			HeapPath:      heapPath,
-			Err:           nil,
+			CPUProfilePath: cpuPath,
+			GoroutinePath:  goPath,
+			HeapPath:       heapPath,
+			Err:            nil,
 		}
 	}
+}
+
+func writeProfile(name, path string) error {
+	f, createErr := os.Create(path)
+	if createErr != nil {
+		return fmt.Errorf("create %s: %w", name, createErr)
+	}
+	defer f.Close()
+
+	if writeErr := pprof.Lookup(name).WriteTo(f, 0); writeErr != nil {
+		return fmt.Errorf("write %s: %w", name, writeErr)
+	}
+
+	return nil
 }
