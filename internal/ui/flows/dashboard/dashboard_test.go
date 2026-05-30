@@ -93,23 +93,21 @@ func TestInit(t *testing.T) {
 // TestUpdate
 // ---------------------------------------------------------------------------
 
-//nolint:funlen,maintidx,gocognit // long test with many table-driven cases
-func TestUpdate(t *testing.T) {
-	t.Parallel()
+type updateTestCase struct {
+	name string
+	// arrange
+	setup func(dashboard.Model, *dockermocks.MockDocker, *parsermocks.MockParser) dashboard.Model
+	// act
+	msg tea.Msg
+	// assert
+	expectedMsg tea.Msg
+	expectCmd   bool
+	check       func(*testing.T, tea.Cmd)
+}
 
-	type testCase struct {
-		name string
-		// arrange
-		setup func(dashboard.Model, *dockermocks.MockDocker, *parsermocks.MockParser) dashboard.Model
-		// act
-		msg tea.Msg
-		// assert
-		expectedMsg tea.Msg
-		expectCmd   bool
-		check       func(*testing.T, tea.Cmd)
-	}
-
-	cases := []testCase{
+//nolint:funlen,maintidx // table-driven test cases with inline setup/check closures
+func buildUpdateTestCases() []updateTestCase {
+	return []updateTestCase{
 		// --- keyboard: quit ---
 		{
 			name:        "key q produces tea.QuitMsg",
@@ -451,21 +449,12 @@ func TestUpdate(t *testing.T) {
 			check: func(t *testing.T, cmd tea.Cmd) {
 				t.Helper()
 				require.NotNil(t, cmd)
-				msg := cmd()
 
-				if batch, isBatch := msg.(tea.BatchMsg); isBatch {
-					for _, entry := range batch {
-						if tcMsg, isTC := entry().(msgs.TopbarContext); isTC {
-							assert.Equal(t, svcAPI, tcMsg.Service)
-							assert.Equal(t, "dashboard", tcMsg.Phase)
-							assert.Equal(t, "compose.yaml", tcMsg.File)
-
-							return
-						}
-					}
-				}
-
-				t.Error("expected TopbarContext in batch")
+				tcMsg, found := findInBatch[msgs.TopbarContext](cmd())
+				require.True(t, found, "expected TopbarContext in batch")
+				assert.Equal(t, svcAPI, tcMsg.Service)
+				assert.Equal(t, "dashboard", tcMsg.Phase)
+				assert.Equal(t, "compose.yaml", tcMsg.File)
 			},
 		},
 		{
@@ -474,19 +463,10 @@ func TestUpdate(t *testing.T) {
 			check: func(t *testing.T, cmd tea.Cmd) {
 				t.Helper()
 				require.NotNil(t, cmd)
-				msg := cmd()
 
-				if batch, isBatch := msg.(tea.BatchMsg); isBatch {
-					for _, entry := range batch {
-						if rws, isRWS := entry().(msgs.ReportWrapStatus); isRWS {
-							assert.Equal(t, svcWeb, rws.ServiceName)
-
-							return
-						}
-					}
-				}
-
-				t.Error("expected ReportWrapStatus in batch")
+				rws, found := findInBatch[msgs.ReportWrapStatus](cmd())
+				require.True(t, found, "expected ReportWrapStatus in batch")
+				assert.Equal(t, svcWeb, rws.ServiceName)
 			},
 		},
 		// --- labels: ServicesPolled triggers Inspect for selected service ---
@@ -577,8 +557,12 @@ func TestUpdate(t *testing.T) {
 			},
 		},
 	}
+}
 
-	for _, tc := range cases {
+func TestUpdate(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range buildUpdateTestCases() {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -839,4 +823,35 @@ func assertServiceActionBatch(
 	require.True(t, ok)
 	assert.Equal(t, svcWeb, completedMsg.ServiceName)
 	assert.Equal(t, expectedAction, completedMsg.Action)
+}
+
+func findInBatch[T any](msg tea.Msg) (T, bool) {
+	batch, ok := msg.(tea.BatchMsg)
+	if !ok {
+		var zero T
+
+		return zero, false
+	}
+
+	for _, entry := range batch {
+		if entry == nil {
+			continue
+		}
+
+		result := entry()
+
+		if found, isType := result.(T); isType {
+			return found, true
+		}
+
+		if nested, isNested := result.(tea.BatchMsg); isNested {
+			if found, nestedOk := findInBatch[T](nested); nestedOk {
+				return found, true
+			}
+		}
+	}
+
+	var zero T
+
+	return zero, false
 }

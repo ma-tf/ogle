@@ -107,7 +107,7 @@ func (m Model) Init() tea.Cmd {
 
 // Update handles dashboard-level messages.
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
-	var carouselCmd, panCmd, settingsCmd, accCmd, labelsAccordionCmd, topbarCtxCmd, inspectCmd, reportWrapCmd tea.Cmd
+	var carouselCmd, panCmd, settingsCmd, accCmd, labelsAccordionCmd, selectedCmd, polledCmd tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -141,14 +141,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		return m.handleFileAvailabilityChanged(msg.Files)
 
 	case msgs.SettingsApplied:
-		if th, err := theme.Load(msg.Theme, m.configDir); err == nil {
-			m.th = th
-		}
-
-		m.cfg.Theme = msg.Theme
-		m.cfg.LogBufferCap = msg.LogBufferCap
-
-		return m, nil
+		return m.handleSettingsApplied(msg)
 
 	case theme.Changed:
 		m.th = msg.Theme
@@ -159,26 +152,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		return m, nil
 
 	case msgs.ServiceSelected:
-		m.selectedName = msg.ServiceName
-		topbarCtxCmd = func() tea.Msg {
-			return msgs.TopbarContext{
-				Phase:   "dashboard",
-				File:    filepath.Base(m.project.File),
-				Service: msg.ServiceName,
-			}
-		}
-
-		reportWrapCmd = func() tea.Msg {
-			return msgs.ReportWrapStatus(msg)
-		}
-
-		inspectCmd = m.inspectSelected()
+		m, selectedCmd = m.handleServiceSelected(msg)
 
 	case msgs.ServicesPolled:
-		if msg.Err == nil {
-			m.runtimeData = msg.Runtimes
-			inspectCmd = m.inspectSelected()
-		}
+		m, polledCmd = m.handleServicesPolled(msg)
 
 	case msgs.FrameHeight:
 		m.frameHeight = msg.Height
@@ -199,9 +176,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		carouselCmd,
 		panCmd,
 		settingsCmd,
-		topbarCtxCmd,
-		reportWrapCmd,
-		inspectCmd,
+		selectedCmd,
+		polledCmd,
 	)
 }
 
@@ -333,6 +309,50 @@ func (m Model) handleFileAvailabilityChanged(files []string) (Model, tea.Cmd) {
 	newDash := New(m.ctx, p, m.th, m.cfg, m.zm, m.configDir, m.w, m.h, m.docker, m.parser)
 
 	return newDash, newDash.Init()
+}
+
+// handleServiceSelected updates the selected service name and returns
+// TopbarContext, ReportWrapStatus, and container label inspection commands.
+func (m Model) handleServiceSelected(msg msgs.ServiceSelected) (Model, tea.Cmd) {
+	m.selectedName = msg.ServiceName
+
+	return m, tea.Batch(
+		func() tea.Msg {
+			return msgs.TopbarContext{
+				Phase:   "dashboard",
+				File:    filepath.Base(m.project.File),
+				Service: msg.ServiceName,
+			}
+		},
+		func() tea.Msg {
+			return msgs.ReportWrapStatus(msg)
+		},
+		m.inspectSelected(),
+	)
+}
+
+// handleSettingsApplied updates theme and config from settings changes.
+func (m Model) handleSettingsApplied(msg msgs.SettingsApplied) (Model, tea.Cmd) {
+	if th, err := theme.Load(msg.Theme, m.configDir); err == nil {
+		m.th = th
+	}
+
+	m.cfg.Theme = msg.Theme
+	m.cfg.LogBufferCap = msg.LogBufferCap
+
+	return m, nil
+}
+
+// handleServicesPolled updates runtime data and triggers label inspection
+// when the data is available.
+func (m Model) handleServicesPolled(msg msgs.ServicesPolled) (Model, tea.Cmd) {
+	if msg.Err == nil {
+		m.runtimeData = msg.Runtimes
+
+		return m, m.inspectSelected()
+	}
+
+	return m, nil
 }
 
 // inspectSelected returns a Cmd that fetches container labels for the
