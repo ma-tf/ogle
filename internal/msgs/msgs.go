@@ -114,8 +114,12 @@ type BindingsMsg struct {
 
 type (
 	// LogLinesAvailable signals that new log lines are waiting in the streamer's
-	// line channel. The logpane drains the channel on receipt.
-	LogLinesAvailable struct{}
+	// line channel. The logpane drains the channel on receipt. ServiceName
+	// identifies which streamer produced the signal so that servicehosts can
+	// filter and avoid re-subscribing Next on unrelated streamers.
+	LogLinesAvailable struct {
+		ServiceName string
+	}
 
 	// LogStreamError is emitted when the LogStreamer goroutine hits a read error.
 	LogStreamError struct {

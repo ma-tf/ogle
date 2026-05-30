@@ -70,6 +70,10 @@ type viewCache struct {
 	cachedView tea.View
 }
 
+// flushMotionMsg is sent by a debounce tick to flush the latest buffered
+// mouse-motion position after the throttle window expires.
+type flushMotionMsg struct{}
+
 // Model is the root flow orchestrator.
 type Model struct {
 	ctx         context.Context
@@ -99,6 +103,7 @@ type Model struct {
 	keymap          help.KeyMap
 	lastFrameHeight int
 	lastMotionTime  time.Time
+	pendingMotion   *tea.MouseMotionMsg
 	cache           *viewCache
 }
 
@@ -183,6 +188,7 @@ func New(
 		keymap:          nil,
 		lastFrameHeight: 0,
 		lastMotionTime:  time.Time{},
+		pendingMotion:   nil,
 		cache: &viewCache{
 			gen:        1,
 			lastGen:    0,
@@ -212,17 +218,38 @@ func (m Model) Init() tea.Cmd {
 // Update drives the root state machine. Messages are either handled by app
 // directly or dispatched to the active phase model.
 //
-// Mouse-motion events are throttled to motionThrottleInterval (~30 fps) to
-// prevent excessive render cycles. Throttled events avoid a full dispatch,
-// so the model is returned unchanged and View() returns its cached output.
+// Mouse-motion events are debounced to motionThrottleInterval (~30 fps). The
+// latest position during the window is buffered and flushed via a tick so the
+// final stopping position always renders. Throttled events return early without
+// a gen bump, so View() returns its cached output.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if m, cmd, handled := m.tryThrottleMotion(msg); handled {
 		return m, cmd
 	}
 
+	if _, ok := msg.(flushMotionMsg); ok {
+		return m.handleFlushMotion(msg)
+	}
+
 	m.cache.gen++
 
 	return m.handleMessage(msg)
+}
+
+// handleFlushMotion dispatches the latest buffered mouse position without
+// rearming the debounce tick — the next user motion will start a fresh window.
+func (m Model) handleFlushMotion(_ tea.Msg) (tea.Model, tea.Cmd) {
+	if m.pendingMotion == nil {
+		return m, nil
+	}
+
+	m.lastMotionTime = time.Now()
+	m.cache.gen++
+
+	pending := *m.pendingMotion
+	m.pendingMotion = nil
+
+	return m.dispatchToComponents(pending)
 }
 
 // handleMessage routes a non-throttled message to the appropriate handler or
@@ -289,24 +316,30 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 // tryThrottleMotion checks whether msg is a MouseMotionMsg that falls within
-// the throttle window. If so it drops it (returns handled=true) so the caller
-// skips both gen-bump and dispatch. For a non-throttled motion event it bumps
-// the gen and dispatches.
+// the throttle window. If so it buffers the latest position and schedules a
+// flush tick so the final mouse position is never lost. For a non-throttled
+// motion event it dispatches immediately and arms the next flush.
 func (m Model) tryThrottleMotion(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 	if _, ok := msg.(tea.MouseMotionMsg); !ok {
 		return m, nil, false
 	}
 
 	if !m.lastMotionTime.IsZero() && time.Since(m.lastMotionTime) < motionThrottleInterval {
+		mm, _ := msg.(tea.MouseMotionMsg)
+		m.pendingMotion = &mm
+
 		return m, nil, true
 	}
 
 	m.lastMotionTime = time.Now()
+	m.pendingMotion = nil
 	m.cache.gen++
 
 	model, cmd := m.dispatchToComponents(msg)
 
-	return model, cmd, true
+	return model, tea.Batch(cmd, tea.Tick(motionThrottleInterval, func(_ time.Time) tea.Msg {
+		return flushMotionMsg{}
+	})), true
 }
 
 func (m Model) handleProfilesDumped(msg profiling.ProfilesDumped) (tea.Model, tea.Cmd) {

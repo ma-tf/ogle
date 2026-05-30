@@ -137,8 +137,12 @@ func (m Model) handleServicesPolled(msg msgs.ServicesPolled) (Model, tea.Cmd) {
 }
 
 func (m Model) handleStreamEvent(msg tea.Msg) (Model, []tea.Cmd) {
-	switch msg.(type) {
+	switch msg := msg.(type) {
 	case msgs.LogLinesAvailable:
+		if msg.ServiceName != "" && msg.ServiceName != m.def.Name {
+			return m, nil
+		}
+
 		m.retryCount = 0
 
 		return m, []tea.Cmd{m.streamer.Next()}

@@ -163,7 +163,7 @@ func TestReadFrames(t *testing.T) {
 
 			errCh := make(chan error, 1)
 			go func() {
-				errCh <- logs.ReadFrames(ctx, r, lines, signals)
+				errCh <- logs.ReadFrames(ctx, r, lines, signals, "")
 			}()
 
 			var gotLines []string
@@ -215,7 +215,7 @@ func TestReadFramesContextCancel(t *testing.T) {
 
 		errCh := make(chan error, 1)
 		go func() {
-			errCh <- logs.ReadFrames(ctx, r, lines, signals)
+			errCh <- logs.ReadFrames(ctx, r, lines, signals, "")
 		}()
 
 		require.ErrorIs(t, <-errCh, context.Canceled)
@@ -236,7 +236,7 @@ func TestReadFramesContextCancel(t *testing.T) {
 
 		errCh := make(chan error, 1)
 		go func() {
-			errCh <- logs.ReadFrames(ctx, r, lines, signals)
+			errCh <- logs.ReadFrames(ctx, r, lines, signals, "")
 		}()
 
 		cancel()
@@ -260,7 +260,7 @@ func TestReadFramesContextCancel(t *testing.T) {
 
 		errCh := make(chan error, 1)
 		go func() {
-			errCh <- logs.ReadFrames(ctx, r, lines, signals)
+			errCh <- logs.ReadFrames(ctx, r, lines, signals, "")
 		}()
 
 		cancel()
@@ -283,7 +283,7 @@ func TestReadFramesContextCancel(t *testing.T) {
 
 		errCh := make(chan error, 1)
 		go func() {
-			errCh <- logs.ReadFrames(ctx, r, lines, signals)
+			errCh <- logs.ReadFrames(ctx, r, lines, signals, "")
 		}()
 
 		// Cancel while ReadFrames is blocked on lines <- "hello".

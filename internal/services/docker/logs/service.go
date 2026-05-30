@@ -162,7 +162,7 @@ func (s *LogStreamer) startStream(ctx context.Context, containerName string) {
 
 	defer client.CloseIdleConnections()
 
-	err = ReadFrames(ctx, resp.Body, s.lineCh, s.ch)
+	err = ReadFrames(ctx, resp.Body, s.lineCh, s.ch, s.serviceName)
 	if err != nil && ctx.Err() == nil {
 		s.sendError(ctx, err)
 	}
@@ -187,12 +187,14 @@ func (s *LogStreamer) sendContainerNotFound(ctx context.Context) {
 // trailing newline and sent to lines; a LogLinesAvailable signal is sent to
 // signals after each line. Read errors are returned — the caller is responsible
 // for wrapping them into msgs.LogStreamError. The reader r is closed before
-// ReadFrames returns.
+// ReadFrames returns. The serviceName is injected into LogLinesAvailable so
+// that servicehosts can filter by the originating streamer.
 func ReadFrames(
 	ctx context.Context,
 	r io.ReadCloser,
 	lines chan<- string,
 	signals chan<- tea.Msg,
+	serviceName string,
 ) error {
 	defer r.Close()
 
@@ -223,7 +225,7 @@ func ReadFrames(
 		select {
 		case lines <- strings.TrimRight(string(payload), "\n"):
 			select {
-			case signals <- msgs.LogLinesAvailable{}:
+			case signals <- msgs.LogLinesAvailable{ServiceName: serviceName}:
 			case <-ctx.Done():
 				return ctx.Err() //nolint:wrapcheck // sentinel errors, callers check via errors.Is
 			}

@@ -17,8 +17,9 @@ import (
 )
 
 const (
-	testProject = "testproj"
-	svcName     = "web"
+	testProject  = "testproj"
+	svcName      = "web"
+	otherSvcName = "other-service"
 )
 
 var svcDef = domain.ServiceDef{Name: svcName} //nolint:gochecknoglobals // shared test fixture
@@ -144,7 +145,7 @@ func TestUpdate_LogStream(t *testing.T) {
 				m, s := newModel(context.Background(), t)
 				s.EXPECT().Start(mock.Anything, testProject+"-"+svcName+"-1").Return()
 				s.EXPECT().Next().Return(func() tea.Msg {
-					return msgs.LogLinesAvailable{}
+					return msgs.LogLinesAvailable{ServiceName: svcName}
 				})
 
 				return m
@@ -154,7 +155,7 @@ func TestUpdate_LogStream(t *testing.T) {
 					svcName: {State: domain.ServiceStateRunning},
 				},
 			},
-			expectedMsg: msgs.LogLinesAvailable{},
+			expectedMsg: msgs.LogLinesAvailable{ServiceName: svcName},
 		},
 
 		{
@@ -215,18 +216,30 @@ func TestUpdate_LogStream(t *testing.T) {
 		},
 
 		{
-			name: "LogLinesAvailable emits streamer.Next and resets retryCount",
+			name: "LogLinesAvailable matching service name emits streamer.Next",
 			setup: func(t *testing.T) servicehost.Model {
 				t.Helper()
 				m, s := newModel(context.Background(), t)
 				s.EXPECT().Next().Return(func() tea.Msg {
-					return msgs.LogLinesAvailable{}
+					return msgs.LogLinesAvailable{ServiceName: svcName}
 				})
 
 				return m
 			},
-			msg:         msgs.LogLinesAvailable{},
-			expectedMsg: msgs.LogLinesAvailable{},
+			msg:         msgs.LogLinesAvailable{ServiceName: svcName},
+			expectedMsg: msgs.LogLinesAvailable{ServiceName: svcName},
+		},
+
+		{
+			name: "LogLinesAvailable non-matching service name is no-op",
+			setup: func(t *testing.T) servicehost.Model {
+				t.Helper()
+				m, _ := newModel(context.Background(), t)
+
+				return m
+			},
+			msg:       msgs.LogLinesAvailable{ServiceName: otherSvcName},
+			expectCmd: false,
 		},
 
 		{
@@ -267,13 +280,13 @@ func TestUpdate_LogStream(t *testing.T) {
 
 				s.EXPECT().Start(mock.Anything, testProject+"-"+svcName+"-1").Return()
 				s.EXPECT().Next().Return(func() tea.Msg {
-					return msgs.LogLinesAvailable{}
+					return msgs.LogLinesAvailable{ServiceName: svcName}
 				})
 
 				return m
 			},
 			msg:         msgs.LogStreamRetryTick{},
-			expectedMsg: msgs.LogLinesAvailable{},
+			expectedMsg: msgs.LogLinesAvailable{ServiceName: svcName},
 		},
 
 		{
@@ -356,7 +369,7 @@ func TestUpdate_LogStream(t *testing.T) {
 
 				return m
 			},
-			msg:       msgs.ReportWrapStatus{ServiceName: "other-service"},
+			msg:       msgs.ReportWrapStatus{ServiceName: otherSvcName},
 			expectCmd: false,
 		},
 	}
@@ -396,7 +409,7 @@ func TestUpdate_LogStreamErrorRecoveryCycle(t *testing.T) {
 		// Step 1: ServicesPolled with running container starts the streamer
 		s.EXPECT().Start(mock.Anything, testProject+"-"+svcName+"-1").Return().Once()
 		s.EXPECT().Next().Return(func() tea.Msg {
-			return msgs.LogLinesAvailable{}
+			return msgs.LogLinesAvailable{ServiceName: svcName}
 		}).Once()
 
 		m, cmd := m.Update(msgs.ServicesPolled{
@@ -405,7 +418,7 @@ func TestUpdate_LogStreamErrorRecoveryCycle(t *testing.T) {
 			},
 		})
 		require.NotNil(t, cmd)
-		require.Equal(t, msgs.LogLinesAvailable{}, cmd())
+		require.Equal(t, msgs.LogLinesAvailable{ServiceName: svcName}, cmd())
 
 		// Step 2: LogStreamError → Close + retry tick
 		s.EXPECT().Close().Return().Once()
@@ -416,22 +429,22 @@ func TestUpdate_LogStreamErrorRecoveryCycle(t *testing.T) {
 		// Step 3: LogStreamRetryTick → Start + Next
 		s.EXPECT().Start(mock.Anything, testProject+"-"+svcName+"-1").Return().Once()
 		s.EXPECT().Next().Return(func() tea.Msg {
-			return msgs.LogLinesAvailable{}
+			return msgs.LogLinesAvailable{ServiceName: svcName}
 		}).Once()
 
 		m, cmd = m.Update(msgs.LogStreamRetryTick{})
 		require.NotNil(t, cmd)
 		result := cmd()
-		require.Equal(t, msgs.LogLinesAvailable{}, result)
+		require.Equal(t, msgs.LogLinesAvailable{ServiceName: svcName}, result)
 
 		// Streamer started again — verify LogLinesAvailable re-subscribes and resets retryCount
 		s.EXPECT().Next().Return(func() tea.Msg {
-			return msgs.LogLinesAvailable{}
+			return msgs.LogLinesAvailable{ServiceName: svcName}
 		}).Once()
 
-		_, cmd = m.Update(msgs.LogLinesAvailable{})
+		_, cmd = m.Update(msgs.LogLinesAvailable{ServiceName: svcName})
 		require.NotNil(t, cmd)
-		require.Equal(t, msgs.LogLinesAvailable{}, cmd())
+		require.Equal(t, msgs.LogLinesAvailable{ServiceName: svcName}, cmd())
 	})
 }
 
@@ -525,7 +538,7 @@ func TestUpdate_ClearLogBuffer(t *testing.T) {
 		m := servicehost.New(context.Background(),
 			theme.Default(), svcDef, testProject, 120, 100, 100, s)
 		m, _ = m.Update(msgs.ServiceSelected{ServiceName: svcName})
-		m, _ = m.Update(msgs.LogLinesAvailable{})
+		m, _ = m.Update(msgs.LogLinesAvailable{ServiceName: svcName})
 
 		assert.Contains(t, m.View().Content, "visible line")
 		assert.Contains(t, m.View().Content, "another line")
@@ -549,11 +562,11 @@ func TestUpdate_ClearLogBuffer(t *testing.T) {
 		m := servicehost.New(context.Background(),
 			theme.Default(), svcDef, testProject, 120, 100, 100, s)
 		m, _ = m.Update(msgs.ServiceSelected{ServiceName: svcName})
-		m, _ = m.Update(msgs.LogLinesAvailable{})
+		m, _ = m.Update(msgs.LogLinesAvailable{ServiceName: svcName})
 
 		assert.Contains(t, m.View().Content, "preserved line")
 
-		m, cmd := m.Update(msgs.ClearLogBuffer{ServiceName: "other-service"})
+		m, cmd := m.Update(msgs.ClearLogBuffer{ServiceName: otherSvcName})
 		require.Nil(t, cmd)
 		assert.Contains(t, m.View().Content, "preserved line")
 	})
