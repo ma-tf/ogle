@@ -269,7 +269,7 @@ func TestUpdate(t *testing.T) {
 			expectedMsg: nil,
 		},
 		{
-			name:        "ServiceSelected clears labels and resets collapsed",
+			name:        "ServiceSelected clears labels",
 			msg:         msgs.ServiceSelected{ServiceName: "other"},
 			expectedMsg: nil,
 		},

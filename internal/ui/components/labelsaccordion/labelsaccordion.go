@@ -86,7 +86,6 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	case msgs.ServiceSelected:
 		m.labels = nil
-		m.collapsed = true
 		m.values = nil
 		m.lastLabels = nil
 		m.lastWidth = -1
