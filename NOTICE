@@ -34,9 +34,9 @@ License URL: https://github.com/charmbracelet/colorprofile/blob/v0.4.3/LICENSE
 
 --------------------------------------------------------------------------------
 Package: github.com/charmbracelet/ultraviolet
-Version: v0.0.0-20260511121909-c840852527f3
+Version: v0.0.0-20260525132238-948f4557a654
 License: MIT
-License URL: https://github.com/charmbracelet/ultraviolet/blob/c840852527f3/LICENSE
+License URL: https://github.com/charmbracelet/ultraviolet/blob/948f4557a654/LICENSE
 
 --------------------------------------------------------------------------------
 Package: github.com/charmbracelet/x/ansi
@@ -112,9 +112,9 @@ License URL: https://github.com/ma-tf/ogle/blob/HEAD/COPYING
 
 --------------------------------------------------------------------------------
 Package: github.com/mattn/go-runewidth
-Version: v0.0.23
+Version: v0.0.24
 License: MIT
-License URL: https://github.com/mattn/go-runewidth/blob/v0.0.23/LICENSE
+License URL: https://github.com/mattn/go-runewidth/blob/v0.0.24/LICENSE
 
 --------------------------------------------------------------------------------
 Package: github.com/muesli/cancelreader
