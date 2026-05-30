@@ -11,6 +11,12 @@ import (
 	"github.com/ma-tf/ogle/internal/ui/theme"
 )
 
+type viewCache struct {
+	gen        uint64
+	lastGen    uint64
+	cachedView tea.View
+}
+
 const (
 	defaultCap       = 1000
 	horizontalStep   = 8
@@ -33,6 +39,7 @@ type Model struct {
 	frameHeight  int
 	wrap         bool
 	prevOverflow bool
+	cache        viewCache
 }
 
 // New returns a Model reading from the given line channel. lineCap sets the
@@ -73,6 +80,11 @@ func New(th *theme.Theme, w, h, lineCap int, lineCh <-chan string) Model {
 		frameHeight:  frameH,
 		wrap:         false,
 		prevOverflow: false,
+		cache: viewCache{
+			gen:        1,
+			lastGen:    0,
+			cachedView: tea.View{}, //nolint:exhaustruct // zero value is sentinel for "not yet cached"
+		},
 	}
 }
 
@@ -104,6 +116,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	case msgs.ToggleLogWrap:
 		m.wrap = !m.wrap
+		m.cache.gen++
 		realIdx := m.realLineIndex(m.viewport.YOffset())
 		wasAtBottom := m.viewport.AtBottom()
 
@@ -145,16 +158,19 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.viewport.GotoBottom()
 		m = m.drainLineCh()
 		m.prevOverflow = false
+		m.cache.gen++
 
 		return m, nil
 
 	case theme.Changed:
 		m.th = msg.Theme
+		m.cache.gen++
 
 	case msgs.FrameHeight:
 		m.frameHeight = msg.Height
 		m.h = max(0, m.rawH-m.frameHeight)
 		m.viewport.SetHeight(max(m.h-borderWidth, 0))
+		m.cache.gen++
 
 	case tea.WindowSizeMsg:
 		return m.onWindowResize(msg)
@@ -168,6 +184,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m Model) onWindowResize(msg tea.WindowSizeMsg) (Model, tea.Cmd) {
+	m.cache.gen++
 	wasAtBottom := m.viewport.AtBottom()
 	carouselW := max(msg.Width, listMinTermWidth) * listRatio / pctDivisor
 	m.w = msg.Width - carouselW
@@ -220,6 +237,8 @@ func (m Model) drainLines() (Model, tea.Cmd) {
 
 	var trimmed bool
 
+	var drained bool
+
 	for {
 		select {
 		case line, ok := <-m.lineCh:
@@ -229,6 +248,8 @@ func (m Model) drainLines() (Model, tea.Cmd) {
 				return m, nil
 			}
 
+			drained = true
+
 			m.lines = append(m.lines, line)
 			if len(m.lines) > m.cap {
 				m.lines = m.lines[len(m.lines)-m.cap:]
@@ -236,6 +257,9 @@ func (m Model) drainLines() (Model, tea.Cmd) {
 			}
 		default:
 			m = m.refreshViewport()
+			if drained {
+				m.cache.gen++
+			}
 
 			return m.overflowCmd(trimmed)
 		}
@@ -323,6 +347,10 @@ func (m Model) hasOverflow() bool {
 // View returns the viewport-rendered window of log lines with border, background,
 // and foreground styling from the theme.
 func (m Model) View() tea.View {
+	if m.cache.lastGen > 0 && m.cache.gen == m.cache.lastGen {
+		return m.cache.cachedView
+	}
+
 	content := m.viewport.View()
 	if content != "" {
 		content = lipgloss.NewStyle().
@@ -330,10 +358,14 @@ func (m Model) View() tea.View {
 			Render(content)
 	}
 
-	return tea.NewView(m.th.BorderBlurred.
+	v := tea.NewView(m.th.BorderBlurred.
 		Border(lipgloss.RoundedBorder()).
 		BorderBackground(m.th.LogPaneBackground).
 		Width(m.w).
 		Background(m.th.LogPaneBackground).
 		Render(content))
+	m.cache.cachedView = v
+	m.cache.lastGen = m.cache.gen
+
+	return v
 }

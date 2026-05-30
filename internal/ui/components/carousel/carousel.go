@@ -17,6 +17,12 @@ import (
 	"github.com/ma-tf/ogle/internal/ui/theme"
 )
 
+type viewCache struct {
+	gen        uint64
+	lastGen    uint64
+	cachedView tea.View
+}
+
 const (
 	rows                 = 2
 	cols                 = 3
@@ -45,6 +51,7 @@ type Model struct {
 	runtimeData   map[string]*domain.ServiceRuntimeData
 	lastClickTime time.Time
 	lastClickIdx  int
+	cache         viewCache
 }
 
 // New returns a Model for the given project.
@@ -91,6 +98,11 @@ func New(project *domain.Project, w, h int, th *theme.Theme, zm *zone.Manager) M
 		runtimeData:   nil,
 		lastClickTime: time.Time{},
 		lastClickIdx:  -1,
+		cache: viewCache{
+			gen:        1,
+			lastGen:    0,
+			cachedView: tea.View{}, //nolint:exhaustruct // zero value is sentinel for "not yet cached"
+		},
 	}
 }
 
@@ -127,15 +139,18 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.w = msg.Width
 		m.h = msg.Height
+		m.cache.gen++
 
 	case theme.Changed:
 		m.th = msg.Theme
 		m.paginator.ActiveDot = lipgloss.NewStyle().Foreground(m.th.CarouselFocused).Render("•")
 		m.paginator.InactiveDot = lipgloss.NewStyle().Foreground(m.th.CarouselBlurred).Render("○")
+		m.cache.gen++
 
 	case msgs.ServicesPolled:
 		if msg.Err == nil {
 			m.runtimeData = msg.Runtimes
+			m.cache.gen++
 		}
 
 	case tea.MouseClickMsg:
@@ -178,6 +193,7 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 }
 
 func (m Model) handleTab() (Model, tea.Cmd) {
+	m.cache.gen++
 	prevFocus := m.focus
 	d := m.dotCount()
 	total := m.totalSlots()
@@ -292,6 +308,7 @@ func (m Model) handleCardClick(i int) (Model, tea.Cmd) {
 		})
 	}
 
+	m.cache.gen++
 	m.focus = newFocus
 	m.lastClickTime = time.Now()
 	m.lastClickIdx = i
@@ -318,6 +335,7 @@ func (m Model) handleMouseMotion(msg tea.MouseMotionMsg) (Model, tea.Cmd) {
 				return m, nil
 			}
 
+			m.cache.gen++
 			m.hoveredDot = i
 
 			var unhoverCmd tea.Cmd
@@ -347,6 +365,7 @@ func (m Model) handleMouseMotion(msg tea.MouseMotionMsg) (Model, tea.Cmd) {
 
 	var cmd tea.Cmd
 
+	m.cache.gen++
 	m, cmd = m.unhoverCard()
 	m.hovered = hit
 
@@ -377,6 +396,10 @@ func (m Model) unhoverCard() (Model, tea.Cmd) {
 
 // View renders the carousel with card grid, and nav bar below.
 func (m Model) View() tea.View {
+	if m.cache.lastGen > 0 && m.cache.gen == m.cache.lastGen {
+		return m.cache.cachedView
+	}
+
 	carouselW := max(m.w, listMinTermWidth) * listRatio / pctDivisor
 	cardW := carouselW / cols
 	cardH := min(cardW/terminalCellAspect, maxCardH)
@@ -433,7 +456,11 @@ func (m Model) View() tea.View {
 
 	navBar := m.renderNavBar(carouselW)
 
-	return tea.NewView(lipgloss.JoinVertical(lipgloss.Left, grid, navBar))
+	v := tea.NewView(lipgloss.JoinVertical(lipgloss.Left, grid, navBar))
+	m.cache.cachedView = v
+	m.cache.lastGen = m.cache.gen
+
+	return v
 }
 
 func (m Model) renderNavBar(carouselW int) string {
@@ -480,6 +507,7 @@ func (m Model) renderNavBar(carouselW int) string {
 }
 
 func (m Model) rebuildCards() (Model, tea.Cmd) {
+	m.cache.gen++
 	start, end := m.paginator.GetSliceBounds(len(m.all))
 	n := end - start
 	m.cards = make([]card.Model, n)
