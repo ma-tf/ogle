@@ -88,10 +88,10 @@ with `/` on the Dashboard. Planned feature; not yet implemented.
 _Avoid_: Log filter (distinct feature), search
 
 **Labels Accordion**:
-A collapsible accordion section below the Service Details in the Service Inspector that displays `ogle.*`-prefixed
-labels from the running container, fetched via the Docker Engine API at service selection time. Collapsed by default;
+A collapsible accordion section below the Service Details in the Service Inspector that displays the running
+container's labels, fetched via the Docker Engine API at service selection time. Collapsed by default;
 toggled open/closed by mouse click on the header (no keybinding). Each label renders as `key: value` on its own line
-with no wrapping on overflow. The header remains visible even when no `ogle.*` labels exist or Docker is unavailable.
+with no wrapping on overflow. The header remains visible even when no labels exist or Docker is unavailable.
 _Avoid_: Label toggle, metadata section, label section
 
 **Log Filter**:
@@ -200,7 +200,7 @@ specific file to reappear.
 shows a retry countdown and Service States freeze at last-known values. ogle retries automatically.
 - An **Orphan** appears alongside Services in the Dashboard but is not part of the Project. (Future: the **Orphan Toggle**
 will control whether Orphans are shown.)
-- The **Labels Accordion** in the **Service Inspector** displays `ogle.*` container labels fetched from the Docker
+- The **Labels Accordion** in the **Service Inspector** displays container labels fetched from the Docker
   daemon. It is a separate collapsible section below **Service Details**, collapsed by default, toggled by mouse click.
 
 ## Example dialogue
