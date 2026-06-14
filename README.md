@@ -57,3 +57,20 @@ From there:
 - Press `,` or `esc` to open/close the Settings overlay (theme selection, log buffer cap adjustment — auto-saves)
 - Press `c` to clear the selected service's log buffer
 - Use arrow keys / tab to navigate, `ctrl+c` to quit
+
+## Licence
+
+Copyright (C) 2026  Matt F
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
