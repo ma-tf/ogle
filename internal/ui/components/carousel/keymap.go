@@ -6,6 +6,10 @@ import (
 
 //nolint:gochecknoglobals // package-level key bindings are shared across all Model instances
 var (
+	// KeyShiftTab focuses the previous card slot.
+	KeyShiftTab = key.NewBinding(
+		key.WithKeys("shift+tab"), key.WithHelp("shift+tab", "focus previous"),
+	)
 	// KeyTab focuses the next card slot.
 	KeyTab = key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "focus next"))
 	// KeyEnter starts or stops the focused service.
@@ -21,7 +25,7 @@ type Keymap struct{}
 
 // ShortHelp returns the carousel's key bindings for the help bar.
 func (k Keymap) ShortHelp() []key.Binding {
-	return []key.Binding{KeyTab, KeyEnter, KeyPgUp, KeyPgDown}
+	return []key.Binding{KeyTab, KeyShiftTab, KeyEnter, KeyPgUp, KeyPgDown}
 }
 
 // FullHelp returns nil; the carousel has no full help view.

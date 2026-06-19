@@ -122,6 +122,115 @@ func TestUpdate(t *testing.T) { //nolint:funlen // long table-driven test cases
 
 	cases := []testCase{
 		{
+			name:     "Shift+Tab wraps from first to last card",
+			services: testServices3(),
+			setup: func(m carousel.Model) carousel.Model {
+				_ = m.Init()
+
+				return m
+			},
+			msg: tea.KeyPressMsg{Code: tea.KeyTab, Mod: tea.ModShift},
+			assert: func(t *testing.T, _ carousel.Model, cmd tea.Cmd) {
+				t.Helper()
+				require.NotNil(t, cmd)
+
+				msg := cmd()
+				batch, ok := msg.(tea.BatchMsg)
+				require.True(t, ok)
+				require.Len(t, batch, 3)
+
+				blurMsg, ok := batch[0]().(card.BlurMsg)
+				require.True(t, ok)
+				assert.Equal(t, svcAlpha, blurMsg.ServiceName)
+
+				focusMsg, ok := batch[1]().(card.FocusMsg)
+				require.True(t, ok)
+				assert.Equal(t, "svc-gamma", focusMsg.ServiceName)
+
+				selMsg, ok := batch[2]().(msgs.ServiceSelected)
+				require.True(t, ok)
+				assert.Equal(t, "svc-gamma", selMsg.ServiceName)
+			},
+		},
+		{
+			name:     "Shift+Tab from middle card moves to previous",
+			services: testServices3(),
+			setup: func(m carousel.Model) carousel.Model {
+				_ = m.Init()
+				m, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyTab})
+
+				return m
+			},
+			msg: tea.KeyPressMsg{Code: tea.KeyTab, Mod: tea.ModShift},
+			assert: func(t *testing.T, _ carousel.Model, cmd tea.Cmd) {
+				t.Helper()
+				require.NotNil(t, cmd)
+
+				msg := cmd()
+				batch, ok := msg.(tea.BatchMsg)
+				require.True(t, ok)
+				require.Len(t, batch, 3)
+
+				blurMsg, ok := batch[0]().(card.BlurMsg)
+				require.True(t, ok)
+				assert.Equal(t, "svc-beta", blurMsg.ServiceName)
+
+				focusMsg, ok := batch[1]().(card.FocusMsg)
+				require.True(t, ok)
+				assert.Equal(t, svcAlpha, focusMsg.ServiceName)
+
+				selMsg, ok := batch[2]().(msgs.ServiceSelected)
+				require.True(t, ok)
+				assert.Equal(t, svcAlpha, selMsg.ServiceName)
+			},
+		},
+		{
+			name:     "Shift+Tab on empty carousel returns nil cmd",
+			services: nil,
+			setup: func(m carousel.Model) carousel.Model {
+				_ = m.Init()
+
+				return m
+			},
+			msg:    tea.KeyPressMsg{Code: tea.KeyTab, Mod: tea.ModShift},
+			assert: func(t *testing.T, _ carousel.Model, cmd tea.Cmd) { t.Helper(); require.Nil(t, cmd) },
+		},
+		{
+			name:     "Shift+Tab skips active dot",
+			services: testServices8(),
+			setup: func(m carousel.Model) carousel.Model {
+				_ = m.Init()
+
+				// From init focus=2 (first card svc-a), Tab 6 times to reach slot 7 (last card)
+				// then wrap to slot 1 (inactive dot).
+				for range 6 {
+					m, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyTab})
+				}
+
+				return m
+			},
+			msg: tea.KeyPressMsg{Code: tea.KeyTab, Mod: tea.ModShift},
+			assert: func(t *testing.T, _ carousel.Model, cmd tea.Cmd) {
+				t.Helper()
+				require.NotNil(t, cmd)
+
+				msg := cmd()
+				batch, ok := msg.(tea.BatchMsg)
+				require.True(t, ok)
+				// Slot 1 (inactive dot) was focused — no Blur.
+				// Shift+Tab skips slot 0 (active dot), lands on slot 7 (svc-f).
+				require.Len(t, batch, 2)
+
+				focusMsg, ok := batch[0]().(card.FocusMsg)
+				require.True(t, ok)
+				assert.Equal(t, "svc-f", focusMsg.ServiceName)
+
+				selMsg, ok := batch[1]().(msgs.ServiceSelected)
+				require.True(t, ok)
+				assert.Equal(t, "svc-f", selMsg.ServiceName)
+			},
+		},
+		{
 			name:     "Tab cycles focus to next card slot",
 			services: testServices3(),
 			setup: func(m carousel.Model) carousel.Model {

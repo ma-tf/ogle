@@ -171,6 +171,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m Model) handleKeyPress(msg tea.KeyPressMsg) (Model, tea.Cmd) {
+	if key.Matches(msg, KeyShiftTab) {
+		return m.handleShiftTab()
+	}
+
 	if key.Matches(msg, KeyTab) {
 		return m.handleTab()
 	}
@@ -208,6 +212,54 @@ func (m Model) handleTab() (Model, tea.Cmd) {
 		}
 
 		m.focus = (m.focus + 1) % total
+	}
+
+	var cmds []tea.Cmd
+
+	if prevFocus >= d && prevFocus < d+pageSize && m.slotHasCard(prevFocus) {
+		idx := prevFocus - d
+
+		cmds = append(cmds, func() tea.Msg {
+			return card.BlurMsg{ServiceName: m.cardServiceName(idx)}
+		})
+	}
+
+	if m.focus >= d && m.focus < d+pageSize && m.slotHasCard(m.focus) {
+		idx := m.focus - d
+
+		cmds = append(cmds,
+			func() tea.Msg {
+				return card.FocusMsg{ServiceName: m.cardServiceName(idx)}
+			},
+			func() tea.Msg {
+				return msgs.ServiceSelected{ServiceName: m.cardServiceName(idx)}
+			},
+		)
+	}
+
+	return m, tea.Batch(cmds...)
+}
+
+func (m Model) handleShiftTab() (Model, tea.Cmd) {
+	if len(m.cards) == 0 {
+		return m, nil
+	}
+
+	m.cache.gen++
+	prevFocus := m.focus
+	d := m.dotCount()
+	total := m.totalSlots()
+	m.focus = (m.focus - 1 + total) % total
+
+	for {
+		onActiveDot := m.focus < d && m.focus == m.paginator.Page
+		onEmptyCard := m.focus >= d && m.focus < d+pageSize && !m.slotHasCard(m.focus)
+
+		if !onActiveDot && !onEmptyCard {
+			break
+		}
+
+		m.focus = (m.focus - 1 + total) % total
 	}
 
 	var cmds []tea.Cmd
