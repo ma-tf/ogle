@@ -26,7 +26,7 @@ For deeper context the agent can pull on demand:
 | [docs/CONVENTIONS.md](./docs/CONVENTIONS.md) | Coding conventions |
 | [docs/plans/WORKFLOW.md](./docs/plans/WORKFLOW.md) | Plan workflow |
 | [docs/SKILLS.md](./docs/SKILLS.md) | Available agent skills |
-| [docs/CONTEXT.md](./docs/CONTEXT.md) | Domain terminology — Service, Project, Dashboard, etc. |
+| [CONTEXT.md](./CONTEXT.md) | Domain terminology — Service, Project, Dashboard, etc. |
 | [docs/arch.md](./docs/arch.md) | Package structure, dependency graph |
 | [docs/flows.md](./docs/flows.md) | State machines, screen transitions |
 | [docs/TESTING.md](./docs/TESTING.md) | Unit test and UI model test conventions |
