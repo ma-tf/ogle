@@ -63,7 +63,7 @@ func New(project *domain.Project, w, h int, th *theme.Theme, zm *zone.Manager) M
 		PrevPage: KeyPgUp,
 		NextPage: KeyPgDown,
 	}
-	p.ActiveDot = lipgloss.NewStyle().Foreground(th.CarouselFocused).Render("•")
+	p.ActiveDot = lipgloss.NewStyle().Foreground(th.CarouselFocused).Render("●")
 	p.InactiveDot = lipgloss.NewStyle().Foreground(th.CarouselBlurred).Render("○")
 
 	_, end := p.GetSliceBounds(len(project.Services))
@@ -143,7 +143,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	case theme.Changed:
 		m.th = msg.Theme
-		m.paginator.ActiveDot = lipgloss.NewStyle().Foreground(m.th.CarouselFocused).Render("•")
+		m.paginator.ActiveDot = lipgloss.NewStyle().Foreground(m.th.CarouselFocused).Render("●")
 		m.paginator.InactiveDot = lipgloss.NewStyle().Foreground(m.th.CarouselBlurred).Render("○")
 		m.cache.gen++
 
@@ -482,7 +482,7 @@ func (m Model) renderNavBar(carouselW int) string {
 
 		switch {
 		case m.paginator.Page == i:
-			dotChar = "•"
+			dotChar = "●"
 			dotColour = focusedFg
 		case m.focus == i:
 			dotColour = focusedFg

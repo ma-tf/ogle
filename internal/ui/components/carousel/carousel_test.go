@@ -358,7 +358,7 @@ func TestView(t *testing.T) {
 			name:           "nav bar shown when multiple pages",
 			services:       testServices8(),
 			setup:          nil,
-			expectedResult: "•",
+			expectedResult: "●",
 		},
 	}
 
@@ -373,7 +373,7 @@ func TestView(t *testing.T) {
 			}
 
 			if tc.expectedResult == "" {
-				assert.NotContains(t, m.View().Content, "•")
+				assert.NotContains(t, m.View().Content, "●")
 				assert.NotContains(t, m.View().Content, "○")
 			} else {
 				assert.Contains(t, m.View().Content, tc.expectedResult)
