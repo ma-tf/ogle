@@ -27,6 +27,7 @@ type appKeymap struct{}
 func (k appKeymap) ShortHelp() []key.Binding {
 	return []key.Binding{
 		carousel.KeyTab,
+		carousel.KeyShiftTab,
 		carousel.KeyEnter,
 		keyRestart,
 		keyRebuild,
@@ -42,6 +43,7 @@ func (k appKeymap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{
 			carousel.KeyTab,
+			carousel.KeyShiftTab,
 			carousel.KeyEnter,
 			keyRestart,
 			keyRebuild,

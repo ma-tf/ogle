@@ -713,15 +713,16 @@ func TestKeymap_ShortHelp(t *testing.T) {
 	require.True(t, ok)
 
 	bindings := bindMsg.Keymap.ShortHelp()
-	require.Len(t, bindings, 5)
+	require.Len(t, bindings, 6)
 	assert.Equal(t, "tab", bindings[0].Help().Key)
-	assert.Equal(t, "enter", bindings[1].Help().Key)
-	assert.Equal(t, "r", bindings[2].Help().Key)
-	assert.Equal(t, "b", bindings[3].Help().Key)
-	assert.Equal(t, "w", bindings[4].Help().Key)
+	assert.Equal(t, "shift+tab", bindings[1].Help().Key)
+	assert.Equal(t, "enter", bindings[2].Help().Key)
+	assert.Equal(t, "r", bindings[3].Help().Key)
+	assert.Equal(t, "b", bindings[4].Help().Key)
+	assert.Equal(t, "w", bindings[5].Help().Key)
 }
 
-func TestKeymap_FullHelpIncludesF1(t *testing.T) {
+func TestKeymap_FullHelp(t *testing.T) {
 	t.Parallel()
 
 	mockD, mockP := dockermocks.NewMockDocker(t), parsermocks.NewMockParser(t)
@@ -735,20 +736,35 @@ func TestKeymap_FullHelpIncludesF1(t *testing.T) {
 	fullHelp := bindMsg.Keymap.FullHelp()
 	require.Len(t, fullHelp, 4)
 
-	col4 := fullHelp[3]
-	found := false
+	col1 := fullHelp[0]
+	foundShiftTab := false
 
-	for _, b := range col4 {
-		if b.Help().Key == "f1" {
-			assert.Equal(t, "about", b.Help().Desc)
+	for _, b := range col1 {
+		if b.Help().Key == "shift+tab" {
+			assert.Equal(t, "focus previous", b.Help().Desc)
 
-			found = true
+			foundShiftTab = true
 
 			break
 		}
 	}
 
-	assert.True(t, found, "expected f1 binding in column 4")
+	assert.True(t, foundShiftTab, "expected shift+tab binding in column 1")
+
+	col4 := fullHelp[3]
+	foundF1 := false
+
+	for _, b := range col4 {
+		if b.Help().Key == "f1" {
+			assert.Equal(t, "about", b.Help().Desc)
+
+			foundF1 = true
+
+			break
+		}
+	}
+
+	assert.True(t, foundF1, "expected f1 binding in column 4")
 }
 
 // ---------------------------------------------------------------------------

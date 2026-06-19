@@ -56,7 +56,7 @@ From there:
 - Press `F1` (or click the brand text) to open the About overlay
 - Press `,` or `esc` to open/close the Settings overlay (theme selection, log buffer cap adjustment — auto-saves)
 - Press `c` to clear the selected service's log buffer
-- Use arrow keys / tab to navigate, `ctrl+c` to quit
+- Use arrow keys / tab / shift+tab to navigate, `ctrl+c` to quit
 
 ## Licence
 
