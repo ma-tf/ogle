@@ -381,6 +381,16 @@ func (m Model) inspectSelected() tea.Cmd {
 // View renders the service list and inspector side by side. When settings is
 // visible it renders as an overlay on top of the normal dashboard.
 func (m Model) View() tea.View {
+	if m.w < layout.SidebarMinTermWidth {
+		body := m.panel.View().Content
+
+		if m.showingSettings {
+			return m.renderSettingsOverlay(body)
+		}
+
+		return tea.NewView(body)
+	}
+
 	listContent := m.carousel.View().Content
 	listH := lipgloss.Height(listContent)
 	listW := lipgloss.Width(listContent)
@@ -419,17 +429,21 @@ func (m Model) View() tea.View {
 	body := lipgloss.JoinHorizontal(lipgloss.Top, listContent, panContent)
 
 	if m.showingSettings {
-		overContent := m.settings.View().Content
-		overW := lipgloss.Width(overContent)
-		overH := lipgloss.Height(overContent)
-		overX := max((m.w-overW)/2, 0) //nolint:mnd // halving to centre overlay
-		overY := max((m.h-overH)/2, 0) //nolint:mnd // halving to centre overlay
-
-		return tea.NewView(lipgloss.NewCompositor(
-			lipgloss.NewLayer(body).X(0).Y(0).Z(0),
-			lipgloss.NewLayer(overContent).X(overX).Y(overY).Z(1),
-		).Render())
+		return m.renderSettingsOverlay(body)
 	}
 
 	return tea.NewView(body)
+}
+
+func (m Model) renderSettingsOverlay(body string) tea.View {
+	overContent := m.settings.View().Content
+	overW := lipgloss.Width(overContent)
+	overH := lipgloss.Height(overContent)
+	overX := max((m.w-overW)/2, 0) //nolint:mnd // halving to centre overlay
+	overY := max((m.h-overH)/2, 0) //nolint:mnd // halving to centre overlay
+
+	return tea.NewView(lipgloss.NewCompositor(
+		lipgloss.NewLayer(body).X(0).Y(0).Z(0),
+		lipgloss.NewLayer(overContent).X(overX).Y(overY).Z(1),
+	).Render())
 }

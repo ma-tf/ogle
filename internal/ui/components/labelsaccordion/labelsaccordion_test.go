@@ -13,6 +13,7 @@ import (
 	"github.com/ma-tf/ogle/internal/msgs"
 	"github.com/ma-tf/ogle/internal/ui/components/accordion/value"
 	"github.com/ma-tf/ogle/internal/ui/components/labelsaccordion"
+	"github.com/ma-tf/ogle/internal/ui/layout"
 	"github.com/ma-tf/ogle/internal/ui/theme"
 )
 
@@ -30,14 +31,6 @@ const (
 	testShortVal     = "short"
 	testLongVal      = "a-long-value-that-requires-scrolling"
 )
-
-func widthForTerm(w int) int {
-	listMinTermWidth := 80
-	listRatio := 30
-	pctDivisor := 100
-
-	return max(w, listMinTermWidth) * listRatio / pctDivisor
-}
 
 func expandAccordion(
 	t *testing.T,
@@ -67,9 +60,8 @@ func TestView_ColumnWidth(t *testing.T) {
 	_ = m.Init()
 
 	w := lipgloss.Width(m.View().Content)
-	columnW := widthForTerm(100)
-	assert.Equal(t, columnW, w,
-		"view should render at 30%% column width, not full terminal width")
+	assert.Equal(t, layout.SidebarWidth, w,
+		"view should render at sidebar width, not full terminal width")
 }
 
 func TestView_CollapsedStates(t *testing.T) {

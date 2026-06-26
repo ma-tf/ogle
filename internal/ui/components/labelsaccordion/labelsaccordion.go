@@ -14,14 +14,12 @@ import (
 
 	"github.com/ma-tf/ogle/internal/msgs"
 	"github.com/ma-tf/ogle/internal/ui/components/accordion/value"
+	"github.com/ma-tf/ogle/internal/ui/layout"
 	"github.com/ma-tf/ogle/internal/ui/theme"
 )
 
 const (
 	zoneLabelsHeader   = "labels-header"
-	listMinTermWidth   = 80
-	listRatio          = 30
-	pctDivisor         = 100
 	keyWidthCapDivisor = 2
 )
 
@@ -47,7 +45,7 @@ func New(th *theme.Theme, w int, zm *zone.Manager) Model {
 		collapsed:  true,
 		hovered:    false,
 		w:          w,
-		columnW:    max(w, listMinTermWidth) * listRatio / pctDivisor,
+		columnW:    layout.SidebarWidth,
 		values:     nil,
 		scrollGen:  0,
 		lastLabels: nil,
@@ -66,7 +64,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.w = msg.Width
-		m.columnW = max(m.w, listMinTermWidth) * listRatio / pctDivisor
+		m.columnW = layout.SidebarWidth
 
 		return m.syncValues()
 

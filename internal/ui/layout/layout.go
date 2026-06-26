@@ -8,3 +8,11 @@ package layout
 // this value until they receive a msgs.FrameHeight message with the actual
 // current chrome height.
 const FrameHeight = 2
+
+// SidebarWidth is the fixed width in columns of the Service List sidebar.
+const SidebarWidth = 40
+
+// SidebarMinTermWidth is the minimum terminal width at which the sidebar
+// is shown. When the terminal is narrower the sidebar collapses and only
+// the Service Inspector is rendered.
+const SidebarMinTermWidth = 80

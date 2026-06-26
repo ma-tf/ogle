@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	testShortName = "test-service"
+	testShortName = "short-svc"
 	testLongName  = "service-name-that-needs-scrolling-yes"
 	otherService  = "other-service"
 	testW         = 200
@@ -451,14 +451,14 @@ func TestView(t *testing.T) {
 
 				return m
 			},
-			expectedResult: testLongName[:18],
+			expectedResult: testLongName[:11],
 		},
 		{
 			name: "long name unfocused truncated",
 			setup: func(_ card.Model) card.Model {
 				return newCard(testLongName)
 			},
-			expectedResult: testLongName[:17] + "…",
+			expectedResult: testLongName[:10] + "…",
 		},
 		{
 			name: "in-flight border colour",
@@ -487,7 +487,7 @@ func TestView(t *testing.T) {
 			setup: func(_ card.Model) card.Model {
 				return card.New(domain.ServiceDef{Name: testShortName}, 0, 1, theme.Default())
 			},
-			expectedResult: testShortName[:5],
+			expectedResult: testShortName,
 		},
 	}
 

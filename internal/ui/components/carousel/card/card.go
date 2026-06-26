@@ -9,6 +9,7 @@ import (
 
 	"github.com/ma-tf/ogle/internal/domain"
 	"github.com/ma-tf/ogle/internal/msgs"
+	"github.com/ma-tf/ogle/internal/ui/layout"
 	"github.com/ma-tf/ogle/internal/ui/theme"
 )
 
@@ -31,9 +32,6 @@ type ScrollTick struct {
 
 const (
 	cols               = 3
-	listRatio          = 30
-	listMinTermWidth   = 80
-	pctDivisor         = 100
 	maxCardH           = 12
 	terminalCellAspect = 2
 	// BorderW is the total width in cells of both left and right (or top and
@@ -327,9 +325,7 @@ func (m Model) View() tea.View {
 }
 
 func (m Model) cardWidth() int {
-	carouselW := max(m.w, listMinTermWidth) * listRatio / pctDivisor
-
-	return carouselW / cols
+	return layout.SidebarWidth / cols
 }
 
 func (m Model) cardHeight() int {

@@ -239,9 +239,9 @@ func TestUpdate(t *testing.T) {
 			expectedMsg: nil,
 		},
 		{
-			name:        "WindowSizeMsg updates dimensions and triggers sync",
+			name:        "WindowSizeMsg updates dimensions",
 			msg:         tea.WindowSizeMsg{Width: 200, Height: 50},
-			expectedMsg: value.StartMsg{Gen: 2},
+			expectedMsg: nil,
 		},
 		{
 			name:        "theme.Changed updates theme and triggers sync",

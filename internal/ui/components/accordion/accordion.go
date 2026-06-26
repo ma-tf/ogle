@@ -13,6 +13,7 @@ import (
 	"github.com/ma-tf/ogle/internal/domain"
 	"github.com/ma-tf/ogle/internal/msgs"
 	"github.com/ma-tf/ogle/internal/ui/components/accordion/value"
+	"github.com/ma-tf/ogle/internal/ui/layout"
 	"github.com/ma-tf/ogle/internal/ui/theme"
 )
 
@@ -22,9 +23,6 @@ const (
 	labelWidth          = 14
 	secsPerMinute       = 60
 	secsPerHour         = 3600
-	listMinTermWidth    = 80
-	listRatio           = 30
-	pctDivisor          = 100
 	numFields           = 5
 	zoneAccordionHeader = "accordion-header"
 )
@@ -304,9 +302,7 @@ func (m Model) computeFieldContent() ([numFields]string, [numFields]color.Color)
 }
 
 func (m Model) valueWidth() int {
-	carouselW := max(m.w, listMinTermWidth) * listRatio / pctDivisor
-
-	return max(0, carouselW-labelWidth)
+	return max(0, layout.SidebarWidth-labelWidth)
 }
 
 func (m Model) lookupDef(name string) (domain.ServiceDef, bool) {

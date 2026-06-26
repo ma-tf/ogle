@@ -18,12 +18,9 @@ type viewCache struct {
 }
 
 const (
-	defaultCap       = 1000
-	horizontalStep   = 8
-	borderWidth      = 2
-	listMinTermWidth = 80
-	listRatio        = 30
-	pctDivisor       = 100
+	defaultCap     = 1000
+	horizontalStep = 8
+	borderWidth    = 2
 )
 
 // Model stores raw log text lines backed by a viewport for windowed rendering.
@@ -49,7 +46,10 @@ func New(th *theme.Theme, w, h, lineCap int, lineCh <-chan string) Model {
 		lineCap = defaultCap
 	}
 
-	carouselW := max(w, listMinTermWidth) * listRatio / pctDivisor
+	carouselW := layout.SidebarWidth
+	if w < layout.SidebarMinTermWidth {
+		carouselW = 0
+	}
 	panW := max(w-carouselW, 0)
 	frameH := layout.FrameHeight
 	rawH := h
@@ -186,7 +186,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 func (m Model) onWindowResize(msg tea.WindowSizeMsg) (Model, tea.Cmd) {
 	m.cache.gen++
 	wasAtBottom := m.viewport.AtBottom()
-	carouselW := max(msg.Width, listMinTermWidth) * listRatio / pctDivisor
+	carouselW := layout.SidebarWidth
+	if msg.Width < layout.SidebarMinTermWidth {
+		carouselW = 0
+	}
 	m.w = msg.Width - carouselW
 	m.rawH = msg.Height
 	m.h = max(0, m.rawH-m.frameHeight)

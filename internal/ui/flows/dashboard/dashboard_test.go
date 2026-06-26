@@ -404,7 +404,7 @@ func buildUpdateTestCases() []updateTestCase {
 		{
 			name:      "WindowSizeMsg stores dimensions",
 			msg:       tea.WindowSizeMsg{Width: 200, Height: 100},
-			expectCmd: true,
+			expectCmd: false,
 		},
 		// --- theme changed ---
 		{
@@ -602,7 +602,8 @@ func TestView(t *testing.T) {
 		// arrange
 		setup func(dashboard.Model) dashboard.Model
 		// assert
-		expectedResult string
+		expectedResult     string
+		expectedNotPresent string
 	}
 
 	cases := []testCase{
@@ -632,6 +633,24 @@ func TestView(t *testing.T) {
 			},
 			expectedResult: "web",
 		},
+		{
+			name: "service list hidden when terminal narrower than SidebarMinTermWidth",
+			setup: func(m dashboard.Model) dashboard.Model {
+				m, _ = m.Update(tea.WindowSizeMsg{Width: 70, Height: 50})
+
+				return m
+			},
+			expectedNotPresent: "web",
+		},
+		{
+			name: "service list visible when terminal at SidebarMinTermWidth",
+			setup: func(m dashboard.Model) dashboard.Model {
+				m, _ = m.Update(tea.WindowSizeMsg{Width: 80, Height: 50})
+
+				return m
+			},
+			expectedResult: "web",
+		},
 	}
 
 	for _, tc := range cases {
@@ -643,6 +662,10 @@ func TestView(t *testing.T) {
 
 			if tc.setup != nil {
 				m = tc.setup(m)
+			}
+
+			if tc.expectedNotPresent != "" {
+				assert.NotContains(t, m.View().Content, tc.expectedNotPresent)
 			}
 
 			if tc.expectedResult == "" {

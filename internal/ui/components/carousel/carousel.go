@@ -14,6 +14,7 @@ import (
 	"github.com/ma-tf/ogle/internal/domain"
 	"github.com/ma-tf/ogle/internal/msgs"
 	"github.com/ma-tf/ogle/internal/ui/components/carousel/card"
+	"github.com/ma-tf/ogle/internal/ui/layout"
 	"github.com/ma-tf/ogle/internal/ui/theme"
 )
 
@@ -27,9 +28,6 @@ const (
 	rows                 = 2
 	cols                 = 3
 	pageSize             = rows * cols
-	listRatio            = 30
-	listMinTermWidth     = 80
-	pctDivisor           = 100
 	maxCardH             = 12
 	terminalCellAspect   = 2
 	doubleClickThreshold = 350 * time.Millisecond
@@ -452,7 +450,7 @@ func (m Model) View() tea.View {
 		return m.cache.cachedView
 	}
 
-	carouselW := max(m.w, listMinTermWidth) * listRatio / pctDivisor
+	carouselW := layout.SidebarWidth
 	cardW := carouselW / cols
 	cardH := min(cardW/terminalCellAspect, maxCardH)
 

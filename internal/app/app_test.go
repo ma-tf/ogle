@@ -246,6 +246,13 @@ func TestUpdateFileAvailabilityChangedDuringDashboard(t *testing.T) {
 	m, plOk = resultPL.(app.Model)
 	require.True(t, plOk)
 
+	up, _ := m.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
+
+	var upOk bool
+
+	m, upOk = up.(app.Model)
+	require.True(t, upOk)
+
 	watcherMock.EXPECT().Next().Return(func() tea.Msg { return nil })
 
 	msg := msgs.FileAvailabilityChanged{Files: []string{testComposeFile}}
@@ -253,7 +260,9 @@ func TestUpdateFileAvailabilityChangedDuringDashboard(t *testing.T) {
 	require.NotNil(t, result)
 	require.NotNil(t, cmd)
 
-	assert.Contains(t, result.View().Content, testServiceName)
+	r, _ := result.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
+
+	assert.Contains(t, r.View().Content, testServiceName)
 }
 
 func TestUpdateFileAvailabilityChangedDuringWatching(t *testing.T) {
@@ -304,7 +313,9 @@ func TestUpdateProjectLoaded(t *testing.T) {
 	require.NotNil(t, result)
 	require.NotNil(t, cmd)
 
-	assert.Contains(t, result.View().Content, testServiceName,
+	r, _ := result.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
+
+	assert.Contains(t, r.View().Content, testServiceName,
 		"should transition to dashboard phase")
 
 	msg := cmd()
