@@ -6,6 +6,9 @@
 internal/
 ├── app/                              # root flow orchestrator (owns watcher lifecycle)
 │   └── app.go
+├── clipboard/                        # system clipboard abstraction (interface + production impl)
+│   ├── clipboard.go
+│   └── mocks/
 ├── domain/                           # canonical domain types (Project, ServiceDef, ServiceState, etc.)
 │   └── domain.go
 ├── msgs/                             # all inter-component tea.Msg types (no logic, types only)
@@ -73,11 +76,15 @@ internal/
 ## Dependency Graph
 
 ```text
-cmd → app
-app → ui/flows/startup, ui/flows/dashboard, ui/components/about, msgs, services/watcher, services/docker, config
+cmd → app, clipboard
+app → ui/flows/startup, ui/flows/dashboard, ui/components/about, msgs, services/watcher, services/docker, config, clipboard
 ui/flows/startup → services/parser, ui/components/fileselect, msgs, ui/theme
-ui/flows/dashboard → services/parser, services/docker/logs, ui/components/{accordion,labelsaccordion,carousel,servicepanel,settings}, msgs, ui/theme, config
+ui/flows/dashboard → services/parser, services/docker/logs, ui/components/{accordion,labelsaccordion,carousel,servicepanel,settings}, msgs, ui/theme, config, clipboard
 ui/components/* → msgs, ui/theme, ui/colourutil
+ui/components/logpane → clipboard
+ui/components/servicehost → clipboard
+ui/components/servicepanel → clipboard
+clipboard → atotto/clipboard
 ui/components/about → version
 ui/components/topbar → bubblezone, services/docker, services/docker/connection
 services/docker → domain, msgs
