@@ -15,6 +15,7 @@ import (
 	zone "github.com/lrstanley/bubblezone/v2"
 
 	"github.com/ma-tf/ogle/config"
+	"github.com/ma-tf/ogle/internal/clipboard"
 	"github.com/ma-tf/ogle/internal/domain"
 	"github.com/ma-tf/ogle/internal/msgs"
 	svcdocker "github.com/ma-tf/ogle/internal/services/docker"
@@ -39,6 +40,7 @@ type Model struct {
 	zm        *zone.Manager
 	configDir string
 	docker    svcdocker.Docker
+	clipboard clipboard.Clipboard
 
 	accordion       accordion.Model
 	labelsAccordion labelsaccordion.Model
@@ -66,6 +68,7 @@ func New(
 	w, h int,
 	docker svcdocker.Docker,
 	p parser.Parser,
+	clip clipboard.Clipboard,
 ) Model {
 	selectedName := ""
 	if len(project.Services) > 0 {
@@ -73,17 +76,25 @@ func New(
 	}
 
 	return Model{
-		ctx:                      ctx,
-		parser:                   p,
-		project:                  project,
-		th:                       th,
-		zm:                       zm,
-		configDir:                configDir,
-		docker:                   docker,
-		accordion:                accordion.New(project, w, accordionInitHeight, th, zm),
-		labelsAccordion:          labelsaccordion.New(th, w, zm),
-		carousel:                 carousel.New(project, w, h, th, zm),
-		panel:                    servicepanel.New(project, th, w, h, cfg.LogBufferCap),
+		ctx:             ctx,
+		parser:          p,
+		project:         project,
+		th:              th,
+		zm:              zm,
+		configDir:       configDir,
+		docker:          docker,
+		clipboard:       clip,
+		accordion:       accordion.New(project, w, accordionInitHeight, th, zm),
+		labelsAccordion: labelsaccordion.New(th, w, zm),
+		carousel:        carousel.New(project, w, h, th, zm),
+		panel: servicepanel.New(
+			project,
+			th,
+			w,
+			h,
+			cfg.LogBufferCap,
+			servicepanel.WithClipboard(clip),
+		),
 		settings:                 settings.New(th, cfg, w, h),
 		showingSettings:          false,
 		cfg:                      cfg,
@@ -309,7 +320,19 @@ func (m Model) handleFileAvailabilityChanged(files []string) (Model, tea.Cmd) {
 		}
 	}
 
-	newDash := New(m.ctx, p, m.th, m.cfg, m.zm, m.configDir, m.w, m.h, m.docker, m.parser)
+	newDash := New(
+		m.ctx,
+		p,
+		m.th,
+		m.cfg,
+		m.zm,
+		m.configDir,
+		m.w,
+		m.h,
+		m.docker,
+		m.parser,
+		m.clipboard,
+	)
 
 	return newDash, newDash.Init()
 }

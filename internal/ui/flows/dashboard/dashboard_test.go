@@ -53,6 +53,7 @@ func newModel(
 		50,
 		mockD,
 		mockP,
+		nil,
 	)
 }
 

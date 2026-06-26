@@ -6,6 +6,7 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 
+	"github.com/ma-tf/ogle/internal/clipboard"
 	"github.com/ma-tf/ogle/internal/msgs"
 	"github.com/ma-tf/ogle/internal/ui/layout"
 	"github.com/ma-tf/ogle/internal/ui/theme"
@@ -23,6 +24,17 @@ const (
 	borderWidth    = 2
 )
 
+// Option configures a Model.
+type Option func(*Model)
+
+// WithClipboard sets the clipboard writer used for copy-to-clipboard actions.
+// If nil (the default), copy actions are a no-op.
+func WithClipboard(c clipboard.Clipboard) Option {
+	return func(m *Model) {
+		m.clipboard = c
+	}
+}
+
 // Model stores raw log text lines backed by a viewport for windowed rendering.
 type Model struct {
 	lines        []string
@@ -36,12 +48,19 @@ type Model struct {
 	frameHeight  int
 	wrap         bool
 	prevOverflow bool
+	clipboard    clipboard.Clipboard
 	cache        viewCache
 }
 
 // New returns a Model reading from the given line channel. lineCap sets the
 // maximum number of lines retained; values <= 0 fall back to defaultCap.
-func New(th *theme.Theme, w, h, lineCap int, lineCh <-chan string) Model {
+// Options are applied before any internal construction.
+func New(th *theme.Theme, w, h, lineCap int, lineCh <-chan string, opts ...Option) Model {
+	var m Model
+	for _, opt := range opts {
+		opt(&m)
+	}
+
 	if lineCap <= 0 {
 		lineCap = defaultCap
 	}
@@ -81,6 +100,7 @@ func New(th *theme.Theme, w, h, lineCap int, lineCh <-chan string) Model {
 		frameHeight:  frameH,
 		wrap:         false,
 		prevOverflow: false,
+		clipboard:    m.clipboard,
 		cache: viewCache{
 			gen:        1,
 			lastGen:    0,

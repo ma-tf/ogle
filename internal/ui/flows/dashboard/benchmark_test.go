@@ -54,6 +54,7 @@ func benchmarkModel(b *testing.B) dashboard.Model {
 		80,
 		mockD,
 		mockP,
+		nil,
 	)
 
 	m, _ = m.Update(tea.WindowSizeMsg{Width: 120, Height: 80})

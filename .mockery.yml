@@ -22,6 +22,9 @@ require-template-schema-exists: true
 template: testify
 template-schema: "{{.Template}}.schema.json"
 packages:
+  github.com/ma-tf/ogle/internal/clipboard:
+    interfaces:
+      Clipboard:
   github.com/ma-tf/ogle/internal/services/docker:
     interfaces:
       Docker:

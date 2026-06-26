@@ -74,7 +74,17 @@ func newModel(t *testing.T, opts ...modelOpts) (
 		configPath = opts[0].configPath
 	}
 
-	m, cleanup, err := app.New(ctx, cfg, configPath, "", th, mockDocker, mockParser, mockWatcher)
+	m, cleanup, err := app.New(
+		ctx,
+		cfg,
+		configPath,
+		"",
+		th,
+		mockDocker,
+		mockParser,
+		mockWatcher,
+		nil,
+	)
 	require.NoError(t, err)
 
 	return m, cleanup, mockDocker, mockWatcher, th

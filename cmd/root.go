@@ -18,6 +18,7 @@ import (
 
 	"github.com/ma-tf/ogle/config"
 	"github.com/ma-tf/ogle/internal/app"
+	"github.com/ma-tf/ogle/internal/clipboard"
 	svcdocker "github.com/ma-tf/ogle/internal/services/docker"
 	"github.com/ma-tf/ogle/internal/services/parser"
 	"github.com/ma-tf/ogle/internal/services/scanner"
@@ -141,8 +142,10 @@ var (
 				return fmt.Errorf("create watcher: %w", errWatch)
 			}
 
+			clip := clipboard.New()
+
 			model, cleanup, err := app.New(
-				ctx, cfg, configPath, projectFile, th, dockerSvc, parseSvc, wtr,
+				ctx, cfg, configPath, projectFile, th, dockerSvc, parseSvc, wtr, clip,
 			)
 			if err != nil {
 				return fmt.Errorf("app init: %w", err)

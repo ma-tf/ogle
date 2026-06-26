@@ -10,6 +10,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
+	"github.com/ma-tf/ogle/internal/clipboard"
 	"github.com/ma-tf/ogle/internal/domain"
 	"github.com/ma-tf/ogle/internal/msgs"
 	"github.com/ma-tf/ogle/internal/services/docker/logs"
@@ -35,12 +36,20 @@ func WithStreamerHTTPClient(client *http.Client) Option {
 	}
 }
 
+// WithClipboard sets the clipboard writer for every log pane in this panel.
+func WithClipboard(c clipboard.Clipboard) Option {
+	return func(m *Model) {
+		m.clipboard = c
+	}
+}
+
 // Model manages a set of per-service hosts and the state polling lifecycle.
 type Model struct {
 	hosts          []servicehost.Model
 	theme          *theme.Theme
 	pollerStarted  bool
 	streamerClient *http.Client
+	clipboard      clipboard.Clipboard
 	cache          viewCache
 }
 
@@ -62,7 +71,7 @@ func New(project *domain.Project, th *theme.Theme, w, h, logBufferCap int, opts 
 		streamer := logs.New(svc.Name, streamerOpts...)
 
 		hosts[i] = servicehost.New(context.Background(),
-			th, svc, project.Name, w, h, logBufferCap, streamer)
+			th, svc, project.Name, w, h, logBufferCap, streamer, m.clipboard)
 	}
 
 	return Model{
@@ -70,6 +79,7 @@ func New(project *domain.Project, th *theme.Theme, w, h, logBufferCap int, opts 
 		theme:          th,
 		pollerStarted:  false,
 		streamerClient: m.streamerClient,
+		clipboard:      m.clipboard,
 		cache: viewCache{
 			gen:        1,
 			lastGen:    0,

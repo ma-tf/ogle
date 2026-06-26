@@ -18,6 +18,7 @@ import (
 	zone "github.com/lrstanley/bubblezone/v2"
 
 	"github.com/ma-tf/ogle/config"
+	"github.com/ma-tf/ogle/internal/clipboard"
 	"github.com/ma-tf/ogle/internal/domain"
 	"github.com/ma-tf/ogle/internal/msgs"
 	"github.com/ma-tf/ogle/internal/profiling"
@@ -88,6 +89,7 @@ type Model struct {
 	docker      svcdocker.Docker
 	parser      parser.Parser
 	watcher     watcher.Watcher
+	clipboard   clipboard.Clipboard
 
 	topbar       topbar.Model
 	helpbar      helpbar.Model
@@ -125,6 +127,7 @@ func New(
 	dockerSvc svcdocker.Docker,
 	parseSvc parser.Parser,
 	wtr watcher.Watcher,
+	clip clipboard.Clipboard,
 ) (Model, func() error, error) {
 	width, height, errSize := term.GetSize(os.Stdout.Fd())
 	if errSize != nil {
@@ -162,6 +165,7 @@ func New(
 			height,
 			dockerSvc,
 			parseSvc,
+			clip,
 		)
 	}
 
@@ -175,6 +179,7 @@ func New(
 		docker:          dockerSvc,
 		parser:          parseSvc,
 		watcher:         wtr,
+		clipboard:       clip,
 		topbar:          topbar.New(ctx, connection.New(), th, dockerSvc, zm),
 		helpbar:         helpbar.New(th),
 		statusbar:       statusbar.New(th),
@@ -496,6 +501,7 @@ func (m Model) handleProjectLoaded(msg msgs.ProjectLoaded) (Model, tea.Cmd) {
 		m.height,
 		m.docker,
 		m.parser,
+		m.clipboard,
 	)
 	m.phase = PhaseDashboard
 	m.statusActive = false

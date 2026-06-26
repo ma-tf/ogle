@@ -30,7 +30,7 @@ func newModel(ctx context.Context, t *testing.T) (servicehost.Model, *logsmocks.
 	s := logsmocks.NewMockStreamer(t)
 	s.EXPECT().Lines().Return((<-chan string)(make(chan string)))
 
-	return servicehost.New(ctx, theme.Default(), svcDef, testProject, 120, 100, 100, s), s
+	return servicehost.New(ctx, theme.Default(), svcDef, testProject, 120, 100, 100, s, nil), s
 }
 
 func TestUpdate_Lifecycle(t *testing.T) {
@@ -465,7 +465,7 @@ func TestUpdate_UsesStoredContextForStreamerStart(t *testing.T) {
 	).Return()
 	s.EXPECT().Next().Return(func() tea.Msg { return nil })
 
-	m := servicehost.New(ctx, theme.Default(), svcDef, testProject, 120, 100, 100, s)
+	m := servicehost.New(ctx, theme.Default(), svcDef, testProject, 120, 100, 100, s, nil)
 
 	_, cmd := m.Update(msgs.ServicesPolled{
 		Runtimes: map[string]*domain.ServiceRuntimeData{
@@ -536,7 +536,7 @@ func TestUpdate_ClearLogBuffer(t *testing.T) {
 		s.EXPECT().Next().Return(func() tea.Msg { return nil })
 
 		m := servicehost.New(context.Background(),
-			theme.Default(), svcDef, testProject, 120, 100, 100, s)
+			theme.Default(), svcDef, testProject, 120, 100, 100, s, nil)
 		m, _ = m.Update(msgs.ServiceSelected{ServiceName: svcName})
 		m, _ = m.Update(msgs.LogLinesAvailable{ServiceName: svcName})
 
@@ -560,7 +560,7 @@ func TestUpdate_ClearLogBuffer(t *testing.T) {
 		s.EXPECT().Next().Return(func() tea.Msg { return nil })
 
 		m := servicehost.New(context.Background(),
-			theme.Default(), svcDef, testProject, 120, 100, 100, s)
+			theme.Default(), svcDef, testProject, 120, 100, 100, s, nil)
 		m, _ = m.Update(msgs.ServiceSelected{ServiceName: svcName})
 		m, _ = m.Update(msgs.LogLinesAvailable{ServiceName: svcName})
 

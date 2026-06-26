@@ -6,6 +6,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/ma-tf/ogle/internal/clipboard"
 	"github.com/ma-tf/ogle/internal/domain"
 	"github.com/ma-tf/ogle/internal/msgs"
 	"github.com/ma-tf/ogle/internal/services/docker/logs"
@@ -29,6 +30,7 @@ type Model struct {
 	project         string
 	selected        bool
 	retryCount      int
+	clipboard       clipboard.Clipboard
 }
 
 // New constructs a host for the given service.
@@ -39,17 +41,26 @@ func New(
 	project string,
 	w, h, logBufferCap int,
 	streamer logs.Streamer,
+	clipboard clipboard.Clipboard,
 ) Model {
 	return Model{
-		ctx:             ctx,
-		def:             def,
-		logPane:         logpane.New(th, w, h, logBufferCap, streamer.Lines()),
+		ctx: ctx,
+		def: def,
+		logPane: logpane.New(
+			th,
+			w,
+			h,
+			logBufferCap,
+			streamer.Lines(),
+			logpane.WithClipboard(clipboard),
+		),
 		streamer:        streamer,
 		streamerStarted: false,
 		theme:           th,
 		project:         project,
 		selected:        false,
 		retryCount:      0,
+		clipboard:       clipboard,
 	}
 }
 
