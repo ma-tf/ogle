@@ -84,6 +84,11 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			return m, nil
 		}
 
+	case msgs.YankLogLines:
+		if msg.ServiceName != m.def.Name {
+			return m, nil
+		}
+
 	case msgs.ServiceSelected:
 		m.selected = (msg.ServiceName == m.def.Name)
 

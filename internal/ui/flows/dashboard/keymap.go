@@ -18,6 +18,7 @@ var (
 	keyRestart     = key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "restart"))
 	keyRebuild     = key.NewBinding(key.WithKeys("b"), key.WithHelp("b", "rebuild"))
 	keyClearLog    = key.NewBinding(key.WithKeys("c"), key.WithHelp("c", "clear log"))
+	keyYank        = key.NewBinding(key.WithKeys("y"), key.WithHelp("y", "yank [count] lines"))
 	keyHelp        = key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "toggle help"))
 	keyAbout       = key.NewBinding(key.WithKeys("f1"), key.WithHelp("f1", "about"))
 )
@@ -59,6 +60,7 @@ func (k appKeymap) FullHelp() [][]key.Binding {
 			carousel.KeyPgDown,
 			keyToggleWrap,
 			keyClearLog,
+			keyYank,
 		},
 		{
 			keyHelp,

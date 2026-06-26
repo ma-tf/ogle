@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	clipmocks "github.com/ma-tf/ogle/internal/clipboard/mocks"
 	"github.com/ma-tf/ogle/internal/msgs"
 	"github.com/ma-tf/ogle/internal/ui/components/logpane"
 	"github.com/ma-tf/ogle/internal/ui/theme"
@@ -521,6 +522,95 @@ func TestUpdate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestUpdate_YankLogLines(t *testing.T) {
+	t.Parallel()
+
+	t.Run("copies last N lines to clipboard and emits status", func(t *testing.T) {
+		t.Parallel()
+
+		mockClip := clipmocks.NewMockClipboard(t)
+
+		ch := make(chan string, 3)
+		ch <- "line 1"
+
+		ch <- "line 2"
+
+		ch <- "line 3"
+
+		m := logpane.New(theme.Default(), 120, 100, 100, ch, logpane.WithClipboard(mockClip))
+		m, _ = m.Update(msgs.LogLinesAvailable{})
+
+		mockClip.EXPECT().WriteAll("line 2\nline 3").Return(nil)
+
+		_, cmd := m.Update(msgs.YankLogLines{ServiceName: clearSvcName, Count: 2})
+		require.NotNil(t, cmd)
+		require.Equal(t, msgs.DisplayStatus{Msg: "Yanked 2 line(s)"}, cmd())
+	})
+
+	t.Run("count exceeding lines clamps to available lines", func(t *testing.T) {
+		t.Parallel()
+
+		mockClip := clipmocks.NewMockClipboard(t)
+
+		ch := make(chan string, 2)
+		ch <- "only line"
+
+		m := logpane.New(theme.Default(), 120, 100, 100, ch, logpane.WithClipboard(mockClip))
+		m, _ = m.Update(msgs.LogLinesAvailable{})
+
+		mockClip.EXPECT().WriteAll("only line").Return(nil)
+
+		_, cmd := m.Update(msgs.YankLogLines{ServiceName: clearSvcName, Count: 100})
+		require.NotNil(t, cmd)
+		require.Equal(t, msgs.DisplayStatus{Msg: "Yanked 1 line(s)"}, cmd())
+	})
+
+	t.Run("empty buffer shows no lines status and does not write clipboard", func(t *testing.T) {
+		t.Parallel()
+
+		mockClip := clipmocks.NewMockClipboard(t)
+		m := logpane.New(
+			theme.Default(), 120, 100, 100, make(chan string, 1),
+			logpane.WithClipboard(mockClip),
+		)
+
+		_, cmd := m.Update(msgs.YankLogLines{ServiceName: clearSvcName, Count: 1})
+		require.NotNil(t, cmd)
+		require.Equal(t, msgs.DisplayStatus{Msg: "No log lines to yank"}, cmd())
+	})
+
+	t.Run("nil clipboard no-ops", func(t *testing.T) {
+		t.Parallel()
+
+		ch := make(chan string, 1)
+		ch <- "some line"
+
+		m := logpane.New(theme.Default(), 120, 100, 100, ch)
+		m, _ = m.Update(msgs.LogLinesAvailable{})
+
+		_, cmd := m.Update(msgs.YankLogLines{ServiceName: clearSvcName, Count: 1})
+		require.Nil(t, cmd)
+	})
+
+	t.Run("single line with count 1 copies that line", func(t *testing.T) {
+		t.Parallel()
+
+		mockClip := clipmocks.NewMockClipboard(t)
+
+		ch := make(chan string, 1)
+		ch <- "single log line"
+
+		m := logpane.New(theme.Default(), 120, 100, 100, ch, logpane.WithClipboard(mockClip))
+		m, _ = m.Update(msgs.LogLinesAvailable{})
+
+		mockClip.EXPECT().WriteAll("single log line").Return(nil)
+
+		_, cmd := m.Update(msgs.YankLogLines{ServiceName: clearSvcName, Count: 1})
+		require.NotNil(t, cmd)
+		require.Equal(t, msgs.DisplayStatus{Msg: "Yanked 1 line(s)"}, cmd())
+	})
 }
 
 func TestView(t *testing.T) {

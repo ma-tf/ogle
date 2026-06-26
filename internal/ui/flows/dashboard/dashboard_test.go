@@ -517,6 +517,74 @@ func buildUpdateTestCases() []updateTestCase {
 				assert.True(t, found, "expected ContainerLabelsPolled in batch")
 			},
 		},
+		// --- yank log lines ---
+		{
+			name: "key y activates yank mode and does not produce a command",
+			msg:  key('y'),
+		},
+		{
+			name: "key yy emits YankLogLines with count 1",
+			setup: func(
+				m dashboard.Model, _ *dockermocks.MockDocker, _ *parsermocks.MockParser,
+			) dashboard.Model {
+				m, _ = m.Update(key('y'))
+
+				return m
+			},
+			msg:         key('y'),
+			expectedMsg: msgs.YankLogLines{ServiceName: svcWeb, Count: 1},
+		},
+		{
+			name: "key y5y emits YankLogLines with count 5",
+			setup: func(
+				m dashboard.Model, _ *dockermocks.MockDocker, _ *parsermocks.MockParser,
+			) dashboard.Model {
+				m, _ = m.Update(key('y'))
+				m, _ = m.Update(key('5'))
+
+				return m
+			},
+			msg:         key('y'),
+			expectedMsg: msgs.YankLogLines{ServiceName: svcWeb, Count: 5},
+		},
+		{
+			name: "key y10y emits YankLogLines with count 10",
+			setup: func(
+				m dashboard.Model, _ *dockermocks.MockDocker, _ *parsermocks.MockParser,
+			) dashboard.Model {
+				m, _ = m.Update(key('y'))
+				m, _ = m.Update(key('1'))
+				m, _ = m.Update(key('0'))
+
+				return m
+			},
+			msg:         key('y'),
+			expectedMsg: msgs.YankLogLines{ServiceName: svcWeb, Count: 10},
+		},
+		{
+			name: "key y then other key cancels yank and processes other key",
+			setup: func(
+				m dashboard.Model, _ *dockermocks.MockDocker, _ *parsermocks.MockParser,
+			) dashboard.Model {
+				m, _ = m.Update(key('y'))
+
+				return m
+			},
+			msg:         key('q'),
+			expectedMsg: tea.QuitMsg{},
+		},
+		{
+			name: "key yy with no selected service no-ops",
+			setup: func(
+				m dashboard.Model, _ *dockermocks.MockDocker, _ *parsermocks.MockParser,
+			) dashboard.Model {
+				m, _ = m.Update(msgs.ServiceSelected{ServiceName: ""})
+				m, _ = m.Update(key('y'))
+
+				return m
+			},
+			msg: key('y'),
+		},
 		// --- FrameHeight ---
 		{
 			name: "FrameHeight updates layout",

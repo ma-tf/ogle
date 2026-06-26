@@ -1,6 +1,9 @@
 package logpane
 
 import (
+	"fmt"
+	"strings"
+
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -183,6 +186,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 		return m, nil
 
+	case msgs.YankLogLines:
+		return m.handleYankLogLines(msg)
+
 	case theme.Changed:
 		m.th = msg.Theme
 		m.cache.gen++
@@ -352,6 +358,31 @@ func (m Model) realLineIndex(yOffset int) int {
 	}
 
 	return max(0, len(m.lines)-1)
+}
+
+func (m Model) handleYankLogLines(msg msgs.YankLogLines) (Model, tea.Cmd) {
+	if m.clipboard == nil {
+		return m, nil
+	}
+
+	if len(m.lines) == 0 {
+		return m, func() tea.Msg {
+			return msgs.DisplayStatus{Msg: "No log lines to yank"}
+		}
+	}
+
+	count := min(msg.Count, len(m.lines))
+	text := strings.Join(m.lines[len(m.lines)-count:], "\n")
+
+	if err := m.clipboard.WriteAll(text); err != nil {
+		return m, func() tea.Msg {
+			return msgs.DisplayStatus{Msg: fmt.Sprintf("Failed to yank: %v", err)}
+		}
+	}
+
+	return m, func() tea.Msg {
+		return msgs.DisplayStatus{Msg: fmt.Sprintf("Yanked %d line(s)", count)}
+	}
 }
 
 // hasOverflow returns true when soft wrapping is OFF and any line exceeds the

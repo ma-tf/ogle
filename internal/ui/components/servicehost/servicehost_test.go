@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	clipmocks "github.com/ma-tf/ogle/internal/clipboard/mocks"
 	"github.com/ma-tf/ogle/internal/domain"
 	"github.com/ma-tf/ogle/internal/msgs"
 	logsmocks "github.com/ma-tf/ogle/internal/services/docker/logs/mocks"
@@ -569,6 +570,50 @@ func TestUpdate_ClearLogBuffer(t *testing.T) {
 		m, cmd := m.Update(msgs.ClearLogBuffer{ServiceName: otherSvcName})
 		require.Nil(t, cmd)
 		assert.Contains(t, m.View().Content, "preserved line")
+	})
+}
+
+func TestUpdate_YankLogLines(t *testing.T) {
+	t.Parallel()
+
+	t.Run("YankLogLines with matching name passes to logpane", func(t *testing.T) {
+		t.Parallel()
+
+		ch := make(chan string, 10)
+		ch <- "yankable line"
+
+		s := logsmocks.NewMockStreamer(t)
+		s.EXPECT().Lines().Return((<-chan string)(ch))
+		s.EXPECT().Next().Return(func() tea.Msg { return nil })
+
+		mockClip := clipmocks.NewMockClipboard(t)
+		mockClip.EXPECT().WriteAll("yankable line").Return(nil)
+
+		m := servicehost.New(
+			context.Background(),
+			theme.Default(), svcDef, testProject, 120, 100, 100, s, mockClip,
+		)
+		m, _ = m.Update(msgs.ServiceSelected{ServiceName: svcName})
+		m, _ = m.Update(msgs.LogLinesAvailable{ServiceName: svcName})
+
+		_, cmd := m.Update(msgs.YankLogLines{ServiceName: svcName, Count: 1})
+		require.NotNil(t, cmd)
+		require.Equal(t, msgs.DisplayStatus{Msg: "Yanked 1 line(s)"}, cmd())
+	})
+
+	t.Run("YankLogLines with non-matching name is no-op", func(t *testing.T) {
+		t.Parallel()
+
+		s := logsmocks.NewMockStreamer(t)
+		s.EXPECT().Lines().Return((<-chan string)(make(chan string)))
+
+		m := servicehost.New(
+			context.Background(),
+			theme.Default(), svcDef, testProject, 120, 100, 100, s, nil,
+		)
+
+		_, cmd := m.Update(msgs.YankLogLines{ServiceName: otherSvcName, Count: 1})
+		require.Nil(t, cmd)
 	})
 }
 

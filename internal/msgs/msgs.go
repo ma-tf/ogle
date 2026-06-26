@@ -198,6 +198,13 @@ type FrameHeight struct {
 	Height int
 }
 
+// YankLogLines copies the most recent Count log lines from the named service
+// buffer to the system clipboard.
+type YankLogLines struct {
+	ServiceName string
+	Count       int
+}
+
 type (
 	// DisplayError asks the app chrome to show err in the status bar for 3 seconds.
 	DisplayError struct {

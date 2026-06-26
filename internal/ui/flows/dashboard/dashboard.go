@@ -55,6 +55,9 @@ type Model struct {
 	frameHeight     int
 
 	lastInspectedContainerID string
+
+	yankActive bool
+	yankCount  int
 }
 
 // New returns a Model.
@@ -104,6 +107,8 @@ func New(
 		h:                        h,
 		frameHeight:              layout.FrameHeight,
 		lastInspectedContainerID: "",
+		yankActive:               false,
+		yankCount:                0,
 	}
 }
 
@@ -204,6 +209,18 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 		return m, settingsCmd
 	}
 
+	// Yank state machine
+	{
+		var yankCmd tea.Cmd
+
+		var resumed bool
+
+		m, resumed, yankCmd = m.handleYankKeyPress(msg)
+		if resumed {
+			return m, yankCmd
+		}
+	}
+
 	switch {
 	case key.Matches(msg, keyQuit):
 		return m, tea.Quit
@@ -255,6 +272,52 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 	m.carousel, cmd = m.carousel.Update(msg)
 
 	return m, cmd
+}
+
+// handleYankKeyPress implements the vim-style [count]yy state machine.
+// Returns the (possibly mutated) model, a boolean indicating whether the key
+// was consumed by the yank mode, and an optional command. When consumed=false,
+// the caller should process the key through normal bindings.
+func (m Model) handleYankKeyPress(msg tea.KeyPressMsg) (Model, bool, tea.Cmd) {
+	if !m.yankActive {
+		if msg.Code != 'y' {
+			return m, false, nil
+		}
+
+		m.yankActive = true
+		m.yankCount = 0
+
+		return m, true, nil
+	}
+
+	if msg.Code >= '0' && msg.Code <= '9' {
+		m.yankCount = m.yankCount*10 + int(msg.Code-'0') //nolint:mnd // decimal place value
+
+		return m, true, nil
+	}
+
+	if msg.Code == 'y' {
+		m.yankActive = false
+		count := m.yankCount
+		m.yankCount = 0
+
+		if count < 1 {
+			count = 1
+		}
+
+		if m.selectedName == "" {
+			return m, true, nil
+		}
+
+		return m, true, func() tea.Msg {
+			return msgs.YankLogLines{ServiceName: m.selectedName, Count: count}
+		}
+	}
+
+	m.yankActive = false
+	m.yankCount = 0
+
+	return m, false, nil
 }
 
 func (m Model) handleServiceAction(msg tea.Msg) (Model, tea.Cmd) {
