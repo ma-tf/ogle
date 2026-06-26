@@ -189,6 +189,9 @@ The dashboard is a flat model (no sub-states). It:
   `ServiceActionCompleted`, the stderr content is wrapped into an error and `*exec.ExitError` is preserved with exit code
 - Handles `FileAvailabilityChanged` — if the project file is still present, re-parses and updates; if absent, sends a
  msg that triggers `app` to transition to `PhaseWatching`
+- Collapses the sidebar (carousel + accordion) when the terminal width is below `layout.SidebarMinTermWidth` (80 cols);
+ when collapsed, only the Service Inspector panel renders. The sub-component state (focus, scroll, pagination) is
+ preserved during collapse and restored on re-expansion.
 - Forwards all messages to its sub-models (accordion, labelsaccordion, carousel, panel, settings)
 - On `ServiceSelected` or `ServicesPolled` when runtime data is available (non-nil), triggers `docker.Inspect` to fetch
  container labels for `labelsaccordion`

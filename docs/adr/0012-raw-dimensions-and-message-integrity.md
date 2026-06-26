@@ -9,8 +9,11 @@
 > chrome height dynamically via `computeFrameHeight()` (accounting for compact help, expanded help, and status bar
 > states) and broadcasts it via `msgs.FrameHeight{Height}`. `layout.FrameHeight` now serves as a fallback default at
 > initialisation time only. Components that consume `msgs.FrameHeight` include `logpane` and `dashboard`.
-> `servicehost.ServiceName()` and `statusbar.Height()` have been removed. The remaining items (no message
-> reconstruction, pre-resize overflow guard) are also implemented in the current codebase.
+> `servicehost.ServiceName()` and `statusbar.Height()` have been removed.
+> `layout.SidebarWidth` (40 columns) and `layout.SidebarMinTermWidth` (80 columns) were added to centralise the
+> sidebar width policy, replacing the duplicated `listRatio`/`listMinTermWidth` constants formerly spread across
+> `carousel`, `carousel/card`, `accordion`, `logpane`, and `labelsaccordion`.
+> The remaining items (no message reconstruction, pre-resize overflow guard) are also implemented in the current codebase.
 
 ## Context
 
@@ -66,9 +69,9 @@ overflow.
 is removed from `dashboard`, `startup`, and `watching` as duplicated local constants. Components that make height-based
 layout decisions (e.g. `dashboard`, `logpane`) import the shared value and derive their own usable area internally,
 guarding with `max(0, ...)` to avoid negative dimensions on small terminals.
-- `listRatio` and `listMinTermWidth` are duplicated across `carousel`, `carousel/card`, `accordion`, `logpane`, and
-`labelsaccordion` because each independently derives its allocation from raw `w`. This is accepted as the lesser evil
-versus parent pre-calculation.
+- `listRatio` and `listMinTermWidth` were initially duplicated across `carousel`, `carousel/card`, `accordion`, `logpane`,
+and `labelsaccordion`. These were later consolidated into shared layout constants `layout.SidebarWidth` (40 columns) and
+`layout.SidebarMinTermWidth` (80 columns). Components now import from the layout package rather than defining their own.
 - `servicehost.ServiceName()` and `statusbar.Height()` are removed. The interface of a component is `Init/Update/View`
 only.
 - Tests improve: any model can be exercised with `tea.WindowSizeMsg{Width: 80, Height: 24}` and asserted to store
