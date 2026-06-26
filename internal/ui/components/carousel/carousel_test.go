@@ -108,7 +108,7 @@ func TestInit(t *testing.T) {
 // TestUpdate
 // ---------------------------------------------------------------------------
 
-func TestUpdate(t *testing.T) { //nolint:funlen // long table-driven test cases
+func TestUpdate(t *testing.T) { //nolint:funlen,maintidx // long table-driven test cases
 	t.Parallel()
 
 	type testCase struct {

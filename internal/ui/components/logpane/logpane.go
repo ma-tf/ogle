@@ -50,6 +50,7 @@ func New(th *theme.Theme, w, h, lineCap int, lineCh <-chan string) Model {
 	if w < layout.SidebarMinTermWidth {
 		carouselW = 0
 	}
+
 	panW := max(w-carouselW, 0)
 	frameH := layout.FrameHeight
 	rawH := h
@@ -186,10 +187,12 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 func (m Model) onWindowResize(msg tea.WindowSizeMsg) (Model, tea.Cmd) {
 	m.cache.gen++
 	wasAtBottom := m.viewport.AtBottom()
+
 	carouselW := layout.SidebarWidth
 	if msg.Width < layout.SidebarMinTermWidth {
 		carouselW = 0
 	}
+
 	m.w = msg.Width - carouselW
 	m.rawH = msg.Height
 	m.h = max(0, m.rawH-m.frameHeight)

@@ -609,7 +609,7 @@ func TestView(t *testing.T) {
 	cases := []testCase{
 		{
 			name:           "normal dashboard renders carousel and service content",
-			expectedResult: "web",
+			expectedResult: svcWeb,
 		},
 		{
 			name: "settings overlay compositor visible when showingSettings",
@@ -631,7 +631,7 @@ func TestView(t *testing.T) {
 
 				return m
 			},
-			expectedResult: "web",
+			expectedResult: svcWeb,
 		},
 		{
 			name: "service list hidden when terminal narrower than SidebarMinTermWidth",
