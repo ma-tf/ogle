@@ -19,8 +19,8 @@ import (
 )
 
 const (
-	zoneLabelsHeader   = "labels-header"
-	keyWidthCapDivisor = 2
+	zoneLabelsHeader = "labels-header"
+	fixedKeyWidth    = 14
 )
 
 // Model is the labels accordion component state.
@@ -154,8 +154,8 @@ func (m Model) View() tea.View {
 		return tea.NewView(headerStr)
 	}
 
-	kw := m.keyWidth()
-	vw := m.valueWidth()
+	kw := fixedKeyWidth
+	vw := layout.SidebarWidth - fixedKeyWidth
 	bg := m.th.AccordionBackground
 
 	keys := sortedKeys(m.labels)
@@ -196,29 +196,8 @@ func (m Model) View() tea.View {
 	return tea.NewView(content)
 }
 
-func (m Model) keyWidth() int {
-	if len(m.labels) == 0 {
-		return 0
-	}
-
-	maxKeyLen := 0
-
-	for k := range m.labels {
-		keyLen := ansi.StringWidth(k + ": ")
-		if keyLen > maxKeyLen {
-			maxKeyLen = keyLen
-		}
-	}
-
-	return min(maxKeyLen, m.columnW/keyWidthCapDivisor)
-}
-
-func (m Model) valueWidth() int {
-	return m.columnW - m.keyWidth()
-}
-
 func (m Model) syncValues() (Model, tea.Cmd) {
-	vw := m.valueWidth()
+	vw := layout.SidebarWidth - fixedKeyWidth
 	if m.columnW == 0 || len(m.labels) == 0 || vw <= 0 {
 		m.values = nil
 		m.lastLabels = nil

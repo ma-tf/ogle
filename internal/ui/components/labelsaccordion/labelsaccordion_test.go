@@ -221,20 +221,47 @@ func TestView_ExpandedStates(t *testing.T) {
 func TestView_KeyTruncation(t *testing.T) {
 	t.Parallel()
 
-	zm := zone.New()
-	m := labelsaccordion.New(theme.Default(), 200, zm)
-	_ = m.Init()
+	const twelveCharKey = "twelve-chars" // "twelve-chars: " = 14 columns — exact fit
 
-	m, _ = m.Update(msgs.ContainerLabelsPolled{
-		Labels: map[string]string{
-			testLongKey: testVal1,
-			testKey2:    testVal2,
+	type testCase struct {
+		name      string
+		labels    map[string]string
+		expectEllipsis bool
+	}
+
+	cases := []testCase{
+		{
+			name:      "key at exactly 14 columns displays fully",
+			labels:    map[string]string{twelveCharKey: testVal1},
+			expectEllipsis: false,
 		},
-	})
-	m, _ = expandAccordion(t, m, zm)
+		{
+			name:      "key longer than 14 columns truncated with ellipsis",
+			labels:    map[string]string{testLongKey: testVal1},
+			expectEllipsis: true,
+		},
+	}
 
-	assert.Contains(t, m.View().Content, "…",
-		"long key should be truncated with ellipsis")
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			zm := zone.New()
+			m := labelsaccordion.New(theme.Default(), 200, zm)
+			_ = m.Init()
+
+			m, _ = m.Update(msgs.ContainerLabelsPolled{Labels: tc.labels})
+			m, _ = expandAccordion(t, m, zm)
+
+			if tc.expectEllipsis {
+				assert.Contains(t, m.View().Content, "…",
+					"key longer than 14 columns should be truncated with ellipsis")
+			} else {
+				assert.NotContains(t, m.View().Content, "…",
+					"key 14 columns or fewer should display fully without truncation")
+			}
+		})
+	}
 }
 
 func TestUpdate(t *testing.T) {
