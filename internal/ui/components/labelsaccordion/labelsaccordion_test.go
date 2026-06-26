@@ -224,20 +224,20 @@ func TestView_KeyTruncation(t *testing.T) {
 	const twelveCharKey = "twelve-chars" // "twelve-chars: " = 14 columns — exact fit
 
 	type testCase struct {
-		name      string
-		labels    map[string]string
+		name           string
+		labels         map[string]string
 		expectEllipsis bool
 	}
 
 	cases := []testCase{
 		{
-			name:      "key at exactly 14 columns displays fully",
-			labels:    map[string]string{twelveCharKey: testVal1},
+			name:           "key at exactly 14 columns displays fully",
+			labels:         map[string]string{twelveCharKey: testVal1},
 			expectEllipsis: false,
 		},
 		{
-			name:      "key longer than 14 columns truncated with ellipsis",
-			labels:    map[string]string{testLongKey: testVal1},
+			name:           "key longer than 14 columns truncated with ellipsis",
+			labels:         map[string]string{testLongKey: testVal1},
 			expectEllipsis: true,
 		},
 	}
