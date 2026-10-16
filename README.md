@@ -28,7 +28,7 @@
 
 ## Requirements
 
-- Go 1.26+ (to build from source)
+- Go 1.26.9+ (to build from source)
 - Docker daemon (for log streaming and service actions)
 - A Docker Compose file (auto-discovered or specified with `-f`)
 

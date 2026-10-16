@@ -25,8 +25,8 @@ ARG AGENT_GID=1000
 # Rename the base image's "node" user to "agent" and align UID/GID.
 RUN groupmod -g $AGENT_GID node && usermod -u $AGENT_UID -g $AGENT_GID -d /home/agent -m -l agent node
 
-# Install Go 1.26.3 (matches go.mod)
-RUN curl -fsSL https://go.dev/dl/go1.26.3.linux-amd64.tar.gz \
+# Install Go 1.26.9 (matches go.mod)
+RUN curl -fsSL https://go.dev/dl/go1.26.9.linux-amd64.tar.gz \
   | tar -C /usr/local -xz \
   && mkdir -p /home/agent/go \
   && chown ${AGENT_UID}:${AGENT_GID} /home/agent/go

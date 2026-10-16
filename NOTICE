@@ -4,21 +4,21 @@ This file lists the third-party dependencies used by ogle and their licenses.
 
 --------------------------------------------------------------------------------
 Package: charm.land/bubbles/v2
-Version: v2.1.0
+Version: v2.2.1
 License: MIT
-License URL: https://github.com/charmbracelet/bubbles/blob/v2.1.0/LICENSE
+License URL: https://github.com/charmbracelet/bubbles/blob/v2.2.1/LICENSE
 
 --------------------------------------------------------------------------------
 Package: charm.land/bubbletea/v2
-Version: v2.0.6
+Version: v2.1.0
 License: MIT
-License URL: https://github.com/charmbracelet/bubbletea/blob/v2.0.6/LICENSE
+License URL: https://github.com/charmbracelet/bubbletea/blob/v2.1.0/LICENSE
 
 --------------------------------------------------------------------------------
 Package: charm.land/lipgloss/v2
-Version: v2.0.3
+Version: v2.0.6
 License: MIT
-License URL: https://github.com/charmbracelet/lipgloss/blob/v2.0.3/LICENSE
+License URL: https://github.com/charmbracelet/lipgloss/blob/v2.0.6/LICENSE
 
 --------------------------------------------------------------------------------
 Package: github.com/atotto/clipboard
@@ -34,15 +34,15 @@ License URL: https://github.com/charmbracelet/colorprofile/blob/v0.4.3/LICENSE
 
 --------------------------------------------------------------------------------
 Package: github.com/charmbracelet/ultraviolet
-Version: v0.0.0-20260525132238-948f4557a654
+Version: v0.0.0-20261008173134-6b8d4baf91b4
 License: MIT
-License URL: https://github.com/charmbracelet/ultraviolet/blob/948f4557a654/LICENSE
+License URL: https://github.com/charmbracelet/ultraviolet/blob/6b8d4baf91b4/LICENSE
 
 --------------------------------------------------------------------------------
 Package: github.com/charmbracelet/x/ansi
-Version: v0.11.7
+Version: v0.11.9
 License: MIT
-License URL: https://github.com/charmbracelet/x/blob/ansi/v0.11.7/ansi/LICENSE
+License URL: https://github.com/charmbracelet/x/blob/ansi/v0.11.9/ansi/LICENSE
 
 --------------------------------------------------------------------------------
 Package: github.com/charmbracelet/x/term
@@ -88,9 +88,9 @@ License URL: https://github.com/go-viper/mapstructure/blob/v2.5.0/LICENSE
 
 --------------------------------------------------------------------------------
 Package: github.com/lmittmann/tint
-Version: v1.1.3
+Version: v1.2.1
 License: MIT
-License URL: https://github.com/lmittmann/tint/blob/v1.1.3/LICENSE
+License URL: https://github.com/lmittmann/tint/blob/v1.2.1/LICENSE
 
 --------------------------------------------------------------------------------
 Package: github.com/lrstanley/bubblezone/v2
@@ -100,9 +100,9 @@ License URL: https://github.com/lrstanley/bubblezone/blob/v2.0.0/LICENSE
 
 --------------------------------------------------------------------------------
 Package: github.com/lucasb-eyer/go-colorful
-Version: v1.4.0
+Version: v1.4.1
 License: MIT
-License URL: https://github.com/lucasb-eyer/go-colorful/blob/v1.4.0/LICENSE
+License URL: https://github.com/lucasb-eyer/go-colorful/blob/v1.4.1/LICENSE
 
 --------------------------------------------------------------------------------
 Package: github.com/ma-tf/ogle
@@ -112,9 +112,9 @@ License URL: https://github.com/ma-tf/ogle/blob/HEAD/COPYING
 
 --------------------------------------------------------------------------------
 Package: github.com/mattn/go-runewidth
-Version: v0.0.24
+Version: v0.0.30
 License: MIT
-License URL: https://github.com/mattn/go-runewidth/blob/v0.0.24/LICENSE
+License URL: https://github.com/mattn/go-runewidth/blob/v0.0.30/LICENSE
 
 --------------------------------------------------------------------------------
 Package: github.com/muesli/cancelreader
@@ -142,9 +142,9 @@ License URL: https://github.com/sagikazarmark/locafero/blob/v0.12.0/LICENSE
 
 --------------------------------------------------------------------------------
 Package: github.com/sahilm/fuzzy
-Version: v0.1.2
+Version: v0.1.3
 License: MIT
-License URL: https://github.com/sahilm/fuzzy/blob/v0.1.2/LICENSE
+License URL: https://github.com/sahilm/fuzzy/blob/v0.1.3/LICENSE
 
 --------------------------------------------------------------------------------
 Package: github.com/spf13/afero
@@ -184,32 +184,32 @@ License URL: https://github.com/subosito/gotenv/blob/v1.6.0/LICENSE
 
 --------------------------------------------------------------------------------
 Package: github.com/xo/terminfo
-Version: v0.0.0-20220910002029-abceb7e1c41e
+Version: v1.0.0
 License: MIT
-License URL: https://github.com/xo/terminfo/blob/abceb7e1c41e/LICENSE
+License URL: https://github.com/xo/terminfo/blob/v1.0.0/LICENSE
 
 --------------------------------------------------------------------------------
 Package: go.yaml.in/yaml/v3
-Version: v3.0.4
+Version: v3.0.5
 License: MIT
-License URL: https://github.com/yaml/go-yaml/blob/v3.0.4/LICENSE
+License URL: https://github.com/yaml/go-yaml/blob/v3.0.5/LICENSE
 
 --------------------------------------------------------------------------------
 Package: golang.org/x/sync/errgroup
-Version: v0.20.0
+Version: v0.24.0
 License: BSD-3-Clause
-License URL: https://cs.opensource.google/go/x/sync/+/v0.20.0:LICENSE
+License URL: https://cs.opensource.google/go/x/sync/+/v0.24.0:LICENSE
 
 --------------------------------------------------------------------------------
 Package: golang.org/x/sys/unix
-Version: v0.45.0
+Version: v0.48.0
 License: BSD-3-Clause
-License URL: https://cs.opensource.google/go/x/sys/+/v0.45.0:LICENSE
+License URL: https://cs.opensource.google/go/x/sys/+/v0.48.0:LICENSE
 
 --------------------------------------------------------------------------------
 Package: golang.org/x/text
-Version: v0.37.0
+Version: v0.43.0
 License: BSD-3-Clause
-License URL: https://cs.opensource.google/go/x/text/+/v0.37.0:LICENSE
+License URL: https://cs.opensource.google/go/x/text/+/v0.43.0:LICENSE
 
 
