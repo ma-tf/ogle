@@ -184,7 +184,7 @@ func Execute() {
 }
 
 func init() {
-	handler := tint.NewHandler(os.Stderr, &tint.Options{
+	handler := tint.NewTextHandler(os.Stderr, &tint.Options{
 		Level: logLevel,
 	})
 	logger = slog.New(handler)
